@@ -1,0 +1,30 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=db
+      - DB_USER=user
+      - DB_PASSWORD=user
+      - DB_NAME=marketflow
+      - DB_PORT=5432
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=user
+      - POSTGRES_DB=marketflow
+    ports: 
+      - 5432:5432
+    healthcheck:
+      test: ["CMD", 'pg_isready -U user -d marketflow']
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql

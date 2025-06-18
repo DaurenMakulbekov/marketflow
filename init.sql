@@ -1,0 +1,9 @@
+CREATE TABLE exchanges (
+  id SERIAL PRIMARY KEY,
+  pair_name VARCHAR(10) NOT NULL,
+  exchange VARCHAR(20) NOT NULL,
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  average_price DECIMAL NOT NULL,
+  min_price DECIMAL NOT NULL,
+  max_price DECIMAL NOT NULL
+);

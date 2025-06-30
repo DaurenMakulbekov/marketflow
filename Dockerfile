@@ -4,10 +4,10 @@ WORKDIR /app
 
 COPY . .
 
-RUN go build -o main ./cmd
+RUN go build -o marketflow ./cmd
 
 FROM alpine
 
-COPY --from=builder /app/main /main
+COPY --from=builder /app/marketflow /marketflow
 
-CMD ["./main"]
+CMD ["./marketflow"]

@@ -11,3 +11,9 @@ type ExchangeRepository interface {
 type ExchangeService interface {
 	GetData()
 }
+
+type RedisRepository interface {
+	Write(in <-chan string)
+	Read() string
+	LLen() int
+}

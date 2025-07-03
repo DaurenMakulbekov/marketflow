@@ -1,20 +1,20 @@
 package main
 
 import (
-	"fmt"
-	"database/sql"
-	"os"
-	"net/http"
-	"log"
 	"context"
-	"github.com/redis/go-redis/v9"
+	"database/sql"
+	"fmt"
+	"log"
+	"marketflow/internal/core/services/exchangeservice"
+	"marketflow/internal/handlers/exchangehandler"
+	"marketflow/internal/repositories/exchangerepository"
+	"marketflow/internal/repositories/redisrepository"
+	"net/http"
+	"os"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/redis/go-redis/v9"
 )
-
-
-func handler(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "Hello\n")
-}
 
 func main() {
 	var db *sql.DB
@@ -30,9 +30,9 @@ func main() {
 	var ctx = context.Background()
 
 	var rdb = redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr:     "localhost:6379",
 		Password: "",
-		DB: 0,
+		DB:       0,
 	})
 	defer rdb.Close()
 
@@ -43,9 +43,14 @@ func main() {
 
 	fmt.Println(status)
 
+	var redisRepository = redisrepository.NewRedisRepository(rdb, ctx)
+	var exchangeRepository = exchangerepository.NewExchangeRepository(redisRepository)
+	var exchangeService = exchangeservice.NewExchangeService(exchangeRepository)
+	var exchangeHandler = exchangehandler.NewExchangeHandler(exchangeService)
+
 	var mux = http.NewServeMux()
 
-	mux.HandleFunc("GET /", handler)
+	mux.HandleFunc("GET /mode/live", exchangeHandler.LiveModeHandler)
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }

@@ -12,12 +12,14 @@ import (
 )
 
 type exchangeRepository struct {
-	redisRepository ports.RedisRepository
+	redisRepository    ports.RedisRepository
+	postgresRepository ports.PostgresRepository
 }
 
-func NewExchangeRepository(redisRepo ports.RedisRepository) *exchangeRepository {
+func NewExchangeRepository(redisRepo ports.RedisRepository, postgresRepo ports.PostgresRepository) *exchangeRepository {
 	return &exchangeRepository{
-		redisRepository: redisRepo,
+		redisRepository:    redisRepo,
+		postgresRepository: postgresRepo,
 	}
 }
 
@@ -139,5 +141,7 @@ func (exchangeRepo *exchangeRepository) GetData() {
 
 	var merged = Merger(outSlice...)
 
-	exchangeRepo.redisRepository.Write(merged)
+	for i := range merged {
+		exchangeRepo.redisRepository.Write(i)
+	}
 }

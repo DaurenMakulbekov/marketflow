@@ -21,12 +21,10 @@ func NewRedisRepository(rdb *redis.Client, ctx context.Context) *redisRepository
 	return &newRedisRepository
 }
 
-func (redisRepo *redisRepository) Write(jobs <-chan string) {
-	for i := range jobs {
-		_, err := redisRepo.rdb.LPush(redisRepo.ctx, "exchange", i).Result()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Failed to add key-value pair")
-		}
+func (redisRepo *redisRepository) Write(exchange string) {
+	_, err := redisRepo.rdb.LPush(redisRepo.ctx, "exchange", exchange).Result()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to add key-value pair")
 	}
 }
 

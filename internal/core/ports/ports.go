@@ -13,7 +13,7 @@ type ExchangeService interface {
 }
 
 type RedisRepository interface {
-	Write(in <-chan string)
+	Write(exchange string)
 	Read() string
 	LLen() int
 }

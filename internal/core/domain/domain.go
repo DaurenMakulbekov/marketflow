@@ -4,8 +4,7 @@ import (
 	"time"
 )
 
-
-type Data struct {
+type Exchanges struct {
 	PairName  string
 	Exchange  string
 	Timestamp time.Time

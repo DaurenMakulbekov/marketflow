@@ -8,6 +8,7 @@ import (
 	"marketflow/internal/core/services/exchangeservice"
 	"marketflow/internal/handlers/exchangehandler"
 	"marketflow/internal/repositories/exchangerepository"
+	"marketflow/internal/repositories/postgresrepository"
 	"marketflow/internal/repositories/redisrepository"
 	"net/http"
 	"os"
@@ -30,7 +31,7 @@ func main() {
 	var ctx = context.Background()
 
 	var rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     "redis:6379",
 		Password: "",
 		DB:       0,
 	})
@@ -44,7 +45,8 @@ func main() {
 	fmt.Println(status)
 
 	var redisRepository = redisrepository.NewRedisRepository(rdb, ctx)
-	var exchangeRepository = exchangerepository.NewExchangeRepository(redisRepository)
+	var postgresRepository = postgresrepository.NewPostgresRepository((db))
+	var exchangeRepository = exchangerepository.NewExchangeRepository(redisRepository, postgresRepository)
 	var exchangeService = exchangeservice.NewExchangeService(exchangeRepository)
 	var exchangeHandler = exchangehandler.NewExchangeHandler(exchangeService)
 

@@ -1,7 +1,7 @@
 package ports
 
 import (
-// "marketflow/internal/core/domain"
+	"marketflow/internal/core/domain"
 )
 
 type ExchangeRepository interface {
@@ -16,4 +16,8 @@ type RedisRepository interface {
 	Write(exchange string)
 	Read() string
 	LLen() int
+}
+
+type PostgresRepository interface {
+	Write(exchange domain.Exchanges) error
 }

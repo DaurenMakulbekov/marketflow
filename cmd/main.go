@@ -52,7 +52,8 @@ func main() {
 
 	var mux = http.NewServeMux()
 
-	mux.HandleFunc("GET /mode/live", exchangeHandler.LiveModeHandler)
+	mux.HandleFunc("POST /mode/live", exchangeHandler.LiveModeHandler)
+	mux.HandleFunc("POST /mode/test", exchangeHandler.TestModeHandler)
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }

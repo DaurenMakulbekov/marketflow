@@ -5,11 +5,13 @@ import (
 )
 
 type ExchangeRepository interface {
-	GetData()
+	LiveMode()
+	TestMode()
 }
 
 type ExchangeService interface {
-	GetData()
+	LiveMode()
+	TestMode()
 }
 
 type RedisRepository interface {

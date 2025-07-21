@@ -16,5 +16,9 @@ func NewExchangeHandler(exchangeServ ports.ExchangeService) *exchangeHandler {
 }
 
 func (exchangeHandl *exchangeHandler) LiveModeHandler(w http.ResponseWriter, req *http.Request) {
-	exchangeHandl.exchangeService.GetData()
+	exchangeHandl.exchangeService.LiveMode()
+}
+
+func (exchangeHandl *exchangeHandler) TestModeHandler(w http.ResponseWriter, req *http.Request) {
+	exchangeHandl.exchangeService.TestMode()
 }

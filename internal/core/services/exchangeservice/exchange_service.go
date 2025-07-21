@@ -12,6 +12,10 @@ func NewExchangeService(exchangeRepo ports.ExchangeRepository) *exchangeService 
 	}
 }
 
-func (exchangeServ *exchangeService) GetData() {
-	exchangeServ.exchangeRepository.GetData()
+func (exchangeServ *exchangeService) LiveMode() {
+	exchangeServ.exchangeRepository.LiveMode()
+}
+
+func (exchangeServ *exchangeService) TestMode() {
+	exchangeServ.exchangeRepository.TestMode()
 }

@@ -3,8 +3,10 @@ package redisrepository
 import (
 	"context"
 	"fmt"
+	"marketflow/internal/core/domain"
+	"strconv"
+
 	"github.com/redis/go-redis/v9"
-	"os"
 )
 
 type redisRepository struct {
@@ -21,27 +23,71 @@ func NewRedisRepository(rdb *redis.Client, ctx context.Context) *redisRepository
 	return &newRedisRepository
 }
 
-func (redisRepo *redisRepository) Write(exchange string) {
-	_, err := redisRepo.rdb.LPush(redisRepo.ctx, "exchange", exchange).Result()
+func (redisRepo *redisRepository) Write(exchange domain.Exchange) error {
+	_, err := redisRepo.rdb.XAdd(redisRepo.ctx, &redis.XAddArgs{
+		Stream: exchange.Exchange + ":" + exchange.Symbol,
+		Values: map[string]interface{}{
+			"exchange":  exchange.Exchange,
+			"symbol":    exchange.Symbol,
+			"price":     exchange.Price,
+			"timestamp": exchange.Timestamp,
+		},
+	}).Result()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to add key-value pair")
+		return fmt.Errorf("Failed to add key-value pair")
 	}
+
+	return nil
 }
 
-func (redisRepo *redisRepository) Read() string {
-	result, err := redisRepo.rdb.RPop(redisRepo.ctx, "exchange").Result()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Key not found in Redis cache:", err)
+func (redisRepo *redisRepository) ReadAll(exchanges, pairNames []string) ([]domain.Exchange, error) {
+	var exchangesData []domain.Exchange
+	var tx = redisRepo.rdb.TxPipeline()
+
+	for i := range exchanges {
+		for j := range pairNames {
+			tx.XRange(redisRepo.ctx, exchanges[i]+":"+pairNames[j], "-", "+")
+		}
 	}
 
-	return result
+	cmds, err := tx.Exec(redisRepo.ctx)
+	if err != nil {
+		return []domain.Exchange{}, fmt.Errorf("Key not found in Redis cache")
+	}
+
+	for _, c := range cmds {
+		var result = c.(*redis.XMessageSliceCmd).Val()
+
+		for i := range result {
+			price, _ := strconv.ParseFloat(result[i].Values["price"].(string), 64)
+			timestamp, _ := strconv.ParseInt(result[i].Values["timestamp"].(string), 10, 64)
+
+			var exchange = domain.Exchange{
+				ID:        result[i].ID,
+				Exchange:  result[i].Values["exchange"].(string),
+				Symbol:    result[i].Values["symbol"].(string),
+				Price:     price,
+				Timestamp: timestamp,
+			}
+
+			exchangesData = append(exchangesData, exchange)
+		}
+	}
+
+	return exchangesData, nil
 }
 
-func (redisRepo *redisRepository) LLen() int {
-	length, err := redisRepo.rdb.LLen(redisRepo.ctx, "exchange").Result()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "LLen error:", err)
+func (redisRepo *redisRepository) DeleteAll(exchanges []domain.Exchange) error {
+	var tx = redisRepo.rdb.TxPipeline()
+
+	for i := range exchanges {
+		tx.XDel(redisRepo.ctx, exchanges[i].Exchange+":"+exchanges[i].Symbol, exchanges[i].ID)
 	}
 
-	return int(length)
+	_, err := tx.Exec(redisRepo.ctx)
+	if err != nil {
+		return fmt.Errorf("Error Delete: %v", err)
+	}
+
+	return nil
 }

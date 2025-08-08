@@ -26,19 +26,6 @@ func NewExchangeRepository(redisRepo ports.RedisRepository, postgresRepo ports.P
 	}
 }
 
-type Exchange struct {
-	Exchange  string  `json:"exchange"`
-	Symbol    string  `json:"symbol"`
-	Price     float64 `json:"price"`
-	Timestamp int64   `json:"timestamp"`
-}
-
-type ExchangeTest struct {
-	Symbol    string  `json:"symbol"`
-	Price     float64 `json:"price"`
-	Timestamp int64   `json:"timestamp"`
-}
-
 func GetFromExchange(exchange string) <-chan string {
 	var out = make(chan string)
 
@@ -71,14 +58,14 @@ func Distributor(exchangesAddress []string) []<-chan string {
 	return out
 }
 
-func Worker(in <-chan string, exchangeName string) <-chan string {
-	var out = make(chan string)
+func Worker(in <-chan string, exchangeName string) <-chan domain.Exchange {
+	var out = make(chan domain.Exchange)
 
 	go func() {
 		defer close(out)
 
 		for i := range in {
-			var result Exchange
+			var result domain.Exchange
 
 			var decoder = json.NewDecoder(strings.NewReader(i))
 
@@ -87,29 +74,27 @@ func Worker(in <-chan string, exchangeName string) <-chan string {
 				fmt.Fprintln(os.Stderr, "Error decode:", err)
 			}
 
-			var result1 = Exchange{
+			var result1 = domain.Exchange{
 				Exchange:  exchangeName,
 				Symbol:    result.Symbol,
 				Price:     result.Price,
 				Timestamp: result.Timestamp,
 			}
 
-			result2, _ := json.Marshal(result1)
-
-			out <- string(result2)
+			out <- result1
 		}
 	}()
 
 	return out
 }
 
-func Merger(ins ...<-chan string) <-chan string {
-	var out = make(chan string)
+func Merger(ins ...<-chan domain.Exchange) <-chan domain.Exchange {
+	var out = make(chan domain.Exchange)
 	var wg sync.WaitGroup
 	wg.Add(len(ins))
 
 	for _, in := range ins {
-		go func(in <-chan string) {
+		go func(in <-chan domain.Exchange) {
 			defer wg.Done()
 
 			for i := range in {
@@ -126,32 +111,28 @@ func Merger(ins ...<-chan string) <-chan string {
 	return out
 }
 
-func CreateHashTable(exchanges, pairName []string) map[string]map[string]map[string]float64 {
+func CreateHashTable(exchanges, pairNames []string) map[string]map[string]map[string]float64 {
 	var m = make(map[string]map[string]map[string]float64, 3)
 
 	for i := range exchanges {
 		m[exchanges[i]] = make(map[string]map[string]float64, 5)
-		for j := range pairName {
-			m[exchanges[i]][pairName[j]] = make(map[string]float64, 4)
-			m[exchanges[i]][pairName[j]]["min"] = 0
+		for j := range pairNames {
+			m[exchanges[i]][pairNames[j]] = make(map[string]float64, 4)
+			m[exchanges[i]][pairNames[j]]["min"] = 0
 		}
 	}
 
 	return m
 }
 
-func (exchangeRepo *exchangeRepository) Aggregate(exchanges, pairName []string, m map[string]map[string]map[string]float64) {
-	var length = exchangeRepo.redisRepository.LLen()
+func (exchangeRepo *exchangeRepository) Aggregate(exchanges, pairNames []string, m map[string]map[string]map[string]float64) []domain.Exchange {
+	exchangesData, err := exchangeRepo.redisRepository.ReadAll(exchanges, pairNames)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+	}
 
-	for i := 0; i < length; i++ {
-		var data Exchange
-		var exchange = exchangeRepo.redisRepository.Read()
-		var decode = json.NewDecoder(strings.NewReader(exchange))
-
-		var err = decode.Decode(&data)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error decode:", err)
-		}
+	for i := range exchangesData {
+		var data = exchangesData[i]
 
 		m[data.Exchange][data.Symbol]["avg"] += data.Price
 
@@ -164,18 +145,20 @@ func (exchangeRepo *exchangeRepository) Aggregate(exchanges, pairName []string, 
 
 		m[data.Exchange][data.Symbol]["count"]++
 	}
+
+	return exchangesData
 }
 
-func (exchangeRepo *exchangeRepository) Write(exchanges, pairName []string, m map[string]map[string]map[string]float64) {
+func (exchangeRepo *exchangeRepository) Write(exchanges, pairNames []string, m map[string]map[string]map[string]float64) {
 	for i := range exchanges {
-		for j := range pairName {
+		for j := range pairNames {
 			var exchange = domain.Exchanges{
-				PairName:  pairName[j],
+				PairName:  pairNames[j],
 				Exchange:  exchanges[i],
 				Timestamp: time.Now(),
-				AvgPrice:  m[exchanges[i]][pairName[j]]["avg"] / m[exchanges[i]][pairName[j]]["count"],
-				MinPrice:  m[exchanges[i]][pairName[j]]["min"],
-				MaxPrice:  m[exchanges[i]][pairName[j]]["max"],
+				AvgPrice:  m[exchanges[i]][pairNames[j]]["avg"] / m[exchanges[i]][pairNames[j]]["count"],
+				MinPrice:  m[exchanges[i]][pairNames[j]]["min"],
+				MaxPrice:  m[exchanges[i]][pairNames[j]]["max"],
 			}
 
 			var err = exchangeRepo.postgresRepository.Write(exchange)
@@ -187,7 +170,7 @@ func (exchangeRepo *exchangeRepository) Write(exchanges, pairName []string, m ma
 }
 
 func (exchangeRepo *exchangeRepository) WriteToStorage(exchanges []string, ticker *time.Ticker, done chan bool) {
-	var pairName = []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
+	var pairNames = []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
 
 	go func() {
 		for {
@@ -195,9 +178,14 @@ func (exchangeRepo *exchangeRepository) WriteToStorage(exchanges []string, ticke
 			case <-done:
 				return
 			case <-ticker.C:
-				var m = CreateHashTable(exchanges, pairName)
-				exchangeRepo.Aggregate(exchanges, pairName, m)
-				exchangeRepo.Write(exchanges, pairName, m)
+				var m = CreateHashTable(exchanges, pairNames)
+				var exchangesData = exchangeRepo.Aggregate(exchanges, pairNames, m)
+				exchangeRepo.Write(exchanges, pairNames, m)
+
+				var err = exchangeRepo.redisRepository.DeleteAll(exchangesData)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err.Error())
+				}
 			}
 		}
 	}()
@@ -206,7 +194,7 @@ func (exchangeRepo *exchangeRepository) WriteToStorage(exchanges []string, ticke
 func (exchangeRepo *exchangeRepository) LiveMode() {
 	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
 	var exchangesAddress = []string{"172.22.0.5:40101", "172.22.0.6:40102", "172.22.0.7:40103"}
-	var outSlice = make([]<-chan string, 15)
+	var outSlice = make([]<-chan domain.Exchange, 15)
 	var index int = 0
 
 	var out = Distributor(exchangesAddress)
@@ -225,7 +213,10 @@ func (exchangeRepo *exchangeRepository) LiveMode() {
 	exchangeRepo.WriteToStorage(exchanges, ticker, done)
 
 	for i := range merged {
-		exchangeRepo.redisRepository.Write(i)
+		var err = exchangeRepo.redisRepository.Write(i)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+		}
 	}
 
 	done <- true
@@ -234,27 +225,27 @@ func (exchangeRepo *exchangeRepository) LiveMode() {
 
 func Generator() <-chan string {
 	var out = make(chan string)
-	var pairName = []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
+	var pairNames = []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
 
 	go func() {
 		defer close(out)
 
 		for {
-			for i := range pairName {
-				var exchange = Exchange{
-					Symbol:    pairName[i],
+			for i := range pairNames {
+				var exchange = domain.Exchange{
+					Symbol:    pairNames[i],
 					Timestamp: time.Now().Unix(),
 				}
 
-				if pairName[i] == "BTCUSDT" {
+				if pairNames[i] == "BTCUSDT" {
 					exchange.Price = (rand.Float64() * 6000) + 97000
-				} else if pairName[i] == "DOGEUSDT" {
+				} else if pairNames[i] == "DOGEUSDT" {
 					exchange.Price = (rand.Float64() * 0.07) + 0.28
-				} else if pairName[i] == "TONUSDT" {
+				} else if pairNames[i] == "TONUSDT" {
 					exchange.Price = (rand.Float64() * 1.1) + 3.4
-				} else if pairName[i] == "SOLUSDT" {
+				} else if pairNames[i] == "SOLUSDT" {
 					exchange.Price = (rand.Float64() * 85) + 197
-				} else if pairName[i] == "ETHUSDT" {
+				} else if pairNames[i] == "ETHUSDT" {
 					exchange.Price = (rand.Float64() * 470) + 2627
 				}
 
@@ -270,7 +261,7 @@ func Generator() <-chan string {
 
 func (exchangeRepo *exchangeRepository) TestMode() {
 	var exchanges = []string{"exchange_test"}
-	var outSlice = make([]<-chan string, 10)
+	var outSlice = make([]<-chan domain.Exchange, 10)
 	var out = Generator()
 
 	for i := 0; i < 5; i++ {

@@ -21,5 +21,5 @@ type RedisRepository interface {
 }
 
 type PostgresRepository interface {
-	Write(exchange domain.Exchanges) error
+	Write(exchange []domain.Exchanges) error
 }

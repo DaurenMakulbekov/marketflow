@@ -149,7 +149,9 @@ func (exchangeRepo *exchangeRepository) Aggregate(exchanges, pairNames []string,
 	return exchangesData
 }
 
-func (exchangeRepo *exchangeRepository) Write(exchanges, pairNames []string, m map[string]map[string]map[string]float64) {
+func (exchangeRepo *exchangeRepository) GetAggregatedData(exchanges, pairNames []string, m map[string]map[string]map[string]float64) []domain.Exchanges {
+	var aggregatedData []domain.Exchanges
+
 	for i := range exchanges {
 		for j := range pairNames {
 			var exchange = domain.Exchanges{
@@ -161,12 +163,11 @@ func (exchangeRepo *exchangeRepository) Write(exchanges, pairNames []string, m m
 				MaxPrice:  m[exchanges[i]][pairNames[j]]["max"],
 			}
 
-			var err = exchangeRepo.postgresRepository.Write(exchange)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-			}
+			aggregatedData = append(aggregatedData, exchange)
 		}
 	}
+
+	return aggregatedData
 }
 
 func (exchangeRepo *exchangeRepository) WriteToStorage(exchanges []string, ticker *time.Ticker, done chan bool) {
@@ -180,9 +181,14 @@ func (exchangeRepo *exchangeRepository) WriteToStorage(exchanges []string, ticke
 			case <-ticker.C:
 				var m = CreateHashTable(exchanges, pairNames)
 				var exchangesData = exchangeRepo.Aggregate(exchanges, pairNames, m)
-				exchangeRepo.Write(exchanges, pairNames, m)
+				var aggregatedData = exchangeRepo.GetAggregatedData(exchanges, pairNames, m)
 
-				var err = exchangeRepo.redisRepository.DeleteAll(exchangesData)
+				var err = exchangeRepo.postgresRepository.Write(aggregatedData)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				}
+
+				err = exchangeRepo.redisRepository.DeleteAll(exchangesData)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err.Error())
 				}

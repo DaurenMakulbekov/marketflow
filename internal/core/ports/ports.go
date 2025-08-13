@@ -5,8 +5,8 @@ import (
 )
 
 type ExchangeRepository interface {
-	LiveMode()
-	TestMode()
+	GetFromExchange(exchange string) <-chan string
+	Generator() <-chan string
 }
 
 type ExchangeService interface {

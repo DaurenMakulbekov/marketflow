@@ -2,21 +2,92 @@ package exchangerepository
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"marketflow/internal/core/domain"
+	"marketflow/internal/infrastructure/config"
 	"math/rand/v2"
 	"net"
-	"os"
+	"sync"
 
 	"time"
 )
 
 type exchangeRepository struct {
+	table  map[string]*config.Exchange
+	done   chan bool
+	doneWG sync.WaitGroup
 }
 
-func NewExchangeRepository() *exchangeRepository {
-	return &exchangeRepository{}
+func NewExchangeRepository(configs []*config.Exchange) *exchangeRepository {
+	var done = make(chan bool)
+	var table = make(map[string]*config.Exchange)
+	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
+
+	for i := range exchanges {
+		table[exchanges[i]] = configs[i]
+	}
+
+	return &exchangeRepository{
+		table: table,
+		done:  done,
+	}
+}
+
+func (exchangeRepo *exchangeRepository) Close() {
+	for i := 0; i < 3; i++ {
+		exchangeRepo.done <- true
+	}
+	close(exchangeRepo.done)
+}
+
+func (exchangeRepo *exchangeRepository) Stop(ctx context.Context) {
+	fmt.Println("Waiting for exchange repository to finish")
+	var done = make(chan struct{})
+
+	go func() {
+		exchangeRepo.doneWG.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-ctx.Done():
+		fmt.Println("Context done earlier")
+	case <-done:
+		fmt.Println("Exchange repository finished")
+	}
+}
+
+func Connect(exchange *config.Exchange) (net.Conn, error) {
+	conn, err := net.Dial("tcp", exchange.Host+":"+exchange.Port)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
+}
+
+func (exchangeRepo *exchangeRepository) ReConnect(exchange string, ticker *time.Ticker, connect chan<- net.Conn, done chan<- bool) {
+	go func() {
+		for {
+			select {
+			case <-exchangeRepo.done:
+				done <- true
+				return
+			case <-ticker.C:
+				conn, err := Connect(exchangeRepo.table[exchange])
+				if err != nil {
+					//fmt.Fprintf(os.Stderr, "Failed to reconnect to %s\n", exchange)
+				} else {
+					log.Printf("Connected to %s\n", exchange)
+					connect <- conn
+					return
+				}
+			}
+		}
+	}()
 }
 
 func (exchangeRepo *exchangeRepository) GetFromExchange(exchange string) <-chan string {
@@ -25,16 +96,39 @@ func (exchangeRepo *exchangeRepository) GetFromExchange(exchange string) <-chan 
 	go func() {
 		defer close(out)
 
-		conn, err := net.Dial("tcp", exchange)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		defer conn.Close()
+		var connect = make(chan net.Conn)
+		defer close(connect)
+		var done = make(chan bool)
+		defer close(done)
 
-		var scanner = bufio.NewScanner(conn)
+		for {
+			conn, err := Connect(exchangeRepo.table[exchange])
+			if err != nil {
+				log.Printf("Failed to connect to %s\n", exchange)
 
-		for scanner.Scan() {
-			out <- scanner.Text()
+				var ticker = time.NewTicker(time.Second)
+				defer ticker.Stop()
+
+				exchangeRepo.ReConnect(exchange, ticker, connect, done)
+
+				select {
+				case conn1 := <-connect:
+					conn = conn1
+				case <-done:
+					return
+				}
+			}
+			var scanner = bufio.NewScanner(conn)
+
+			for scanner.Scan() {
+				select {
+				case <-exchangeRepo.done:
+					return
+				default:
+					out <- scanner.Text()
+				}
+			}
+			conn.Close()
 		}
 	}()
 

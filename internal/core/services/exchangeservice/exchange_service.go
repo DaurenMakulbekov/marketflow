@@ -26,12 +26,12 @@ func NewExchangeService(exchangeRepo ports.ExchangeRepository, redisRepo ports.R
 	}
 }
 
-func (exchangeServ *exchangeService) Distributor(exchangesAddress []string, exchanges []string) []<-chan domain.Exchange {
+func (exchangeServ *exchangeService) Distributor(exchanges []string) []<-chan domain.Exchange {
 	var outSlice = make([]<-chan domain.Exchange, 15)
 	var index int = 0
 
-	for i := range exchangesAddress {
-		var out = exchangeServ.exchangeRepository.GetFromExchange(exchangesAddress[i])
+	for i := range exchanges {
+		var out = exchangeServ.exchangeRepository.GetFromExchange(exchanges[i])
 
 		for j := 0; j < 5; j++ {
 			outSlice[index] = Worker(out, exchanges[i])
@@ -183,9 +183,8 @@ func (exchangeServ *exchangeService) WriteToStorage(exchanges []string, ticker *
 
 func (exchangeServ *exchangeService) LiveMode() {
 	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
-	var exchangesAddress = []string{"172.22.0.5:40101", "172.22.0.6:40102", "172.22.0.7:40103"}
 
-	var out = exchangeServ.Distributor(exchangesAddress, exchanges)
+	var out = exchangeServ.Distributor(exchanges)
 
 	var merged = Merger(out...)
 	var ticker = time.NewTicker(60 * time.Second)

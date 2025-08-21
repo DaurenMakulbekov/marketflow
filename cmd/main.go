@@ -27,7 +27,7 @@ func main() {
 
 	var redisRepository = redisrepository.NewRedisRepository(config.Redis, ctx)
 	var postgresRepository = postgresrepository.NewPostgresRepository(config.DB)
-	var exchangeRepos = exchangerepository.NewExchangeRepository()
+	var exchangeRepos = exchangerepository.NewExchangeRepository(config.Exchanges)
 	var exchangeService = exchangeservice.NewExchangeService(exchangeRepos, redisRepository, postgresRepository)
 	var exchangeHandler = exchangehandler.NewExchangeHandler(exchangeService)
 

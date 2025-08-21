@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"marketflow/internal/core/domain"
+	"marketflow/internal/infrastructure/config"
 	"strconv"
 
 	"github.com/redis/go-redis/v9"
@@ -14,7 +15,13 @@ type redisRepository struct {
 	ctx context.Context
 }
 
-func NewRedisRepository(rdb *redis.Client, ctx context.Context) *redisRepository {
+func NewRedisRepository(config *config.Redis, ctx context.Context) *redisRepository {
+	var rdb = redis.NewClient(&redis.Options{
+		Addr:     config.Addr,
+		Password: config.Password,
+		DB:       0,
+	})
+
 	var newRedisRepository = redisRepository{
 		rdb: rdb,
 		ctx: ctx,

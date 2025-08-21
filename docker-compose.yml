@@ -3,12 +3,8 @@ services:
     build: .
     ports:
       - "8080:8080"
-    environment:
-      - DB_HOST=db
-      - DB_USER=user
-      - DB_PASSWORD=user
-      - DB_NAME=marketflow
-      - DB_PORT=5432
+    env_file:
+      - .env
     depends_on:
       - db
 

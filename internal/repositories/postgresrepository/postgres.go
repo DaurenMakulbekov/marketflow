@@ -4,15 +4,26 @@ import (
 	"database/sql"
 	"fmt"
 	"marketflow/internal/core/domain"
+	"marketflow/internal/infrastructure/config"
+	"os"
 )
 
 type postgresRepository struct {
 	db *sql.DB
 }
 
-func NewPostgresRepository(DB *sql.DB) *postgresRepository {
+func NewPostgresRepository(config *config.DB) *postgresRepository {
+	var url = fmt.Sprintf("user=%s password=%s host=%s port=%s database=%s sslmode=disable",
+		config.User, config.Password, config.Host, config.Port, config.Name,
+	)
+
+	db, err := sql.Open("pgx", url)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v", err)
+	}
+
 	return &postgresRepository{
-		db: DB,
+		db: db,
 	}
 }
 

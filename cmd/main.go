@@ -2,50 +2,31 @@ package main
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
+	"errors"
+	"time"
+
 	"log"
 	"marketflow/internal/core/services/exchangeservice"
 	"marketflow/internal/handlers/exchangehandler"
+	"marketflow/internal/infrastructure/config"
 	"marketflow/internal/repositories/exchangerepository"
 	"marketflow/internal/repositories/postgresrepository"
 	"marketflow/internal/repositories/redisrepository"
 	"net/http"
-	"os"
+
+	"os/signal"
+	"syscall"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/redis/go-redis/v9"
 )
 
 func main() {
-	var db *sql.DB
-	var err error
-
-	db, err = sql.Open("pgx", "user=user password=user host=db port=5432 database=marketflow sslmode=disable")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v", err)
-		os.Exit(1)
-	}
-	defer db.Close()
+	var config = config.NewAppConfig()
 
 	var ctx = context.Background()
 
-	var rdb = redis.NewClient(&redis.Options{
-		Addr:     "redis:6379",
-		Password: "",
-		DB:       0,
-	})
-	defer rdb.Close()
-
-	status, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Redis connection was refused")
-	}
-
-	fmt.Println(status)
-
-	var redisRepository = redisrepository.NewRedisRepository(rdb, ctx)
-	var postgresRepository = postgresrepository.NewPostgresRepository((db))
+	var redisRepository = redisrepository.NewRedisRepository(config.Redis, ctx)
+	var postgresRepository = postgresrepository.NewPostgresRepository(config.DB)
 	var exchangeRepos = exchangerepository.NewExchangeRepository()
 	var exchangeService = exchangeservice.NewExchangeService(exchangeRepos, redisRepository, postgresRepository)
 	var exchangeHandler = exchangehandler.NewExchangeHandler(exchangeService)
@@ -55,5 +36,32 @@ func main() {
 	mux.HandleFunc("POST /mode/live", exchangeHandler.LiveModeHandler)
 	mux.HandleFunc("POST /mode/test", exchangeHandler.TestModeHandler)
 
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	var server = &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
+
+	signalCtx, signalCtxStop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer signalCtxStop()
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Listen and serve returned error: %v", err)
+		}
+	}()
+
+	<-signalCtx.Done()
+
+	log.Println("Shutting down server...")
+	exchangeRepos.Close()
+	time.Sleep(5 * time.Second)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("Error during shutdown: %v\n", err)
+	}
+
+	log.Println("Server shutdown complete")
 }

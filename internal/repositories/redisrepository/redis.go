@@ -41,6 +41,7 @@ func (redisRepo *redisRepository) Write(exchange domain.Exchange) error {
 			"price":     exchange.Price,
 			"timestamp": exchange.Timestamp,
 		},
+		ID: exchange.ID,
 	}).Result()
 	if err != nil {
 		return fmt.Errorf("Failed to add key-value pair")

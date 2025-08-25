@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -60,7 +61,9 @@ func Worker(in <-chan string, exchangeName string) <-chan domain.Exchange {
 				fmt.Fprintln(os.Stderr, "Error decode:", err)
 			}
 
+			var id = strconv.FormatInt(result.Timestamp, 10)
 			var result1 = domain.Exchange{
+				ID:        id,
 				Exchange:  exchangeName,
 				Symbol:    result.Symbol,
 				Price:     result.Price,

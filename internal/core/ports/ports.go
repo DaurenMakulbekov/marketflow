@@ -18,6 +18,8 @@ type RedisRepository interface {
 	Write(exchange domain.Exchange) error
 	ReadAll(exchanges, pairName []string) ([]domain.Exchange, error)
 	DeleteAll(exchanges []domain.Exchange) error
+	CheckConnection() error
+	Reconnect()
 }
 
 type PostgresRepository interface {

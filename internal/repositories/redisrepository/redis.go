@@ -11,8 +11,9 @@ import (
 )
 
 type redisRepository struct {
-	rdb *redis.Client
-	ctx context.Context
+	rdb    *redis.Client
+	ctx    context.Context
+	config *config.Redis
 }
 
 func NewRedisRepository(config *config.Redis, ctx context.Context) *redisRepository {
@@ -23,8 +24,9 @@ func NewRedisRepository(config *config.Redis, ctx context.Context) *redisReposit
 	})
 
 	var newRedisRepository = redisRepository{
-		rdb: rdb,
-		ctx: ctx,
+		rdb:    rdb,
+		ctx:    ctx,
+		config: config,
 	}
 
 	return &newRedisRepository
@@ -97,4 +99,25 @@ func (redisRepo *redisRepository) DeleteAll(exchanges []domain.Exchange) error {
 	}
 
 	return nil
+}
+
+func (redisRepo *redisRepository) CheckConnection() error {
+	_, err := redisRepo.rdb.Ping(redisRepo.ctx).Result()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (redisRepo *redisRepository) Reconnect() {
+	var newRedisRepository = NewRedisRepository(redisRepo.config, redisRepo.ctx)
+
+	redisRepo.rdb = newRedisRepository.rdb
+}
+
+func (redisRepo *redisRepository) Close() {
+	redisRepo.rdb.Close()
+
+	fmt.Println("Redis Connection Closed")
 }

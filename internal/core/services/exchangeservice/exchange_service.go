@@ -3,6 +3,7 @@ package exchangeservice
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -10,6 +11,7 @@ import (
 
 	"marketflow/internal/core/domain"
 	"marketflow/internal/core/ports"
+	//"marketflow/internal/repositories/storage"
 )
 
 type exchangeService struct {
@@ -181,6 +183,37 @@ func (exchangeServ *exchangeService) WriteToStorage(exchanges []string, ticker *
 	}()
 }
 
+func (exchangeServ *exchangeService) RedisConnect(doneRedisConn chan bool, healthy *bool) {
+	var err = exchangeServ.redisRepository.CheckConnection()
+	if err != nil {
+		log.Printf("Error: %v", err)
+
+		var ticker = time.NewTicker(time.Second)
+		var done = make(chan bool)
+		defer close(done)
+
+		go func() {
+			for {
+				select {
+				case <-doneRedisConn:
+					done <- true
+				case <-ticker.C:
+					exchangeServ.redisRepository.Reconnect()
+					var err = exchangeServ.redisRepository.CheckConnection()
+					if err == nil {
+						log.Println("Connected to Redis")
+						done <- true
+					}
+				}
+			}
+		}()
+
+		<-done
+		ticker.Stop()
+	}
+	*healthy = true
+}
+
 func (exchangeServ *exchangeService) LiveMode() {
 	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
 
@@ -189,16 +222,29 @@ func (exchangeServ *exchangeService) LiveMode() {
 	var merged = Merger(out...)
 	var ticker = time.NewTicker(60 * time.Second)
 	var done = make(chan bool)
+	defer close(done)
 
 	exchangeServ.WriteToStorage(exchanges, ticker, done)
+
+	//var st = storage.NewStorage()
+	var healthy bool = true
+	var doneRedisConn = make(chan bool)
+	defer close(doneRedisConn)
 
 	for i := range merged {
 		var err = exchangeServ.redisRepository.Write(i)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
+			if healthy {
+				healthy = false
+				go exchangeServ.RedisConnect(doneRedisConn, &healthy)
+
+				fmt.Fprintln(os.Stderr, err.Error())
+			}
+			//st.Write(i)
 		}
 	}
 
+	doneRedisConn <- true
 	done <- true
 	ticker.Stop()
 }

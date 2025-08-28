@@ -16,14 +16,16 @@ import (
 )
 
 type exchangeRepository struct {
-	table  map[string]*config.Exchange
-	done   chan bool
-	doneWG sync.WaitGroup
+	table    map[string]*config.Exchange
+	done     chan bool
+	doneTest chan bool
+	doneWG   sync.WaitGroup
 }
 
 func NewExchangeRepository(configs []*config.Exchange) *exchangeRepository {
-	var done = make(chan bool)
 	var table = make(map[string]*config.Exchange)
+	var done = make(chan bool)
+	var doneTest = make(chan bool)
 	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
 
 	for i := range exchanges {
@@ -31,8 +33,9 @@ func NewExchangeRepository(configs []*config.Exchange) *exchangeRepository {
 	}
 
 	return &exchangeRepository{
-		table: table,
-		done:  done,
+		table:    table,
+		done:     done,
+		doneTest: doneTest,
 	}
 }
 
@@ -41,6 +44,12 @@ func (exchangeRepo *exchangeRepository) Close() {
 		exchangeRepo.done <- true
 	}
 	close(exchangeRepo.done)
+}
+
+func (exchangeRepo *exchangeRepository) CloseTest() {
+	for i := 0; i < 3; i++ {
+		exchangeRepo.doneTest <- true
+	}
 }
 
 func (exchangeRepo *exchangeRepository) Stop(ctx context.Context) {
@@ -143,27 +152,33 @@ func (exchangeRepo *exchangeRepository) Generator() <-chan string {
 		defer close(out)
 
 		for {
-			for i := range pairNames {
-				var exchange = domain.Exchange{
-					Symbol:    pairNames[i],
-					Timestamp: time.Now().Unix(),
-				}
+			select {
+			case <-exchangeRepo.doneTest:
+				fmt.Printf("\nTest done closed\n\n")
+				return
+			default:
+				for i := range pairNames {
+					var exchange = domain.Exchange{
+						Symbol:    pairNames[i],
+						Timestamp: time.Now().UnixMilli(),
+					}
 
-				if pairNames[i] == "BTCUSDT" {
-					exchange.Price = (rand.Float64() * 6000) + 97000
-				} else if pairNames[i] == "DOGEUSDT" {
-					exchange.Price = (rand.Float64() * 0.07) + 0.28
-				} else if pairNames[i] == "TONUSDT" {
-					exchange.Price = (rand.Float64() * 1.1) + 3.4
-				} else if pairNames[i] == "SOLUSDT" {
-					exchange.Price = (rand.Float64() * 85) + 197
-				} else if pairNames[i] == "ETHUSDT" {
-					exchange.Price = (rand.Float64() * 470) + 2627
-				}
+					if pairNames[i] == "BTCUSDT" {
+						exchange.Price = (rand.Float64() * 6000) + 97000
+					} else if pairNames[i] == "DOGEUSDT" {
+						exchange.Price = (rand.Float64() * 0.07) + 0.28
+					} else if pairNames[i] == "TONUSDT" {
+						exchange.Price = (rand.Float64() * 1.1) + 3.4
+					} else if pairNames[i] == "SOLUSDT" {
+						exchange.Price = (rand.Float64() * 85) + 197
+					} else if pairNames[i] == "ETHUSDT" {
+						exchange.Price = (rand.Float64() * 470) + 2627
+					}
 
-				result, _ := json.Marshal(exchange)
-				out <- string(result)
-				time.Sleep(22 * time.Millisecond)
+					result, _ := json.Marshal(exchange)
+					out <- string(result)
+				}
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()

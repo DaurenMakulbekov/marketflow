@@ -7,6 +7,7 @@ import (
 type ExchangeRepository interface {
 	GetFromExchange(exchange string) <-chan string
 	Generator() <-chan string
+	CloseTest()
 }
 
 type ExchangeService interface {

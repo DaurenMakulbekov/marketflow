@@ -19,6 +19,9 @@ type exchangeService struct {
 	redisRepository    ports.RedisRepository
 	postgresRepository ports.PostgresRepository
 	storage            ports.Storage
+	live               bool
+	liveStarted        bool
+	test               bool
 }
 
 func NewExchangeService(exchangeRepo ports.ExchangeRepository, redisRepo ports.RedisRepository, postgresRepo ports.PostgresRepository, storageRepo ports.Storage) *exchangeService {
@@ -35,7 +38,13 @@ func (exchangeServ *exchangeService) Distributor(exchanges []string) []<-chan do
 	var index int = 0
 
 	for i := range exchanges {
-		var out = exchangeServ.exchangeRepository.GetFromExchange(exchanges[i])
+		var out <-chan string
+
+		if exchangeServ.liveStarted == false && exchangeServ.live == true {
+			out = exchangeServ.exchangeRepository.GetFromExchange(exchanges[i])
+		} else {
+			out = exchangeServ.exchangeRepository.Generator()
+		}
 
 		for j := 0; j < 5; j++ {
 			outSlice[index] = Worker(out, exchanges[i])
@@ -233,9 +242,7 @@ func (exchangeServ *exchangeService) RedisConnect(doneRedisConn chan bool, healt
 	*healthy = true
 }
 
-func (exchangeServ *exchangeService) LiveMode() {
-	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
-
+func (exchangeServ *exchangeService) Run(exchanges []string) {
 	var out = exchangeServ.Distributor(exchanges)
 
 	var merged = Merger(out...)
@@ -270,25 +277,25 @@ func (exchangeServ *exchangeService) LiveMode() {
 	ticker.Stop()
 }
 
+func (exchangeServ *exchangeService) LiveMode() {
+	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
+
+	if exchangeServ.test == true {
+		exchangeServ.exchangeRepository.CloseTest()
+	}
+	exchangeServ.live = true
+	exchangeServ.test = false
+
+	if exchangeServ.liveStarted == false {
+		exchangeServ.Run(exchanges)
+		exchangeServ.liveStarted = true
+	}
+}
+
 func (exchangeServ *exchangeService) TestMode() {
-	var exchanges = []string{"exchange_test"}
-	var outSlice = make([]<-chan domain.Exchange, 10)
-	var out = exchangeServ.exchangeRepository.Generator()
+	var exchanges = []string{"exchange1_test", "exchange2_test", "exchange3_test"}
+	exchangeServ.test = true
+	exchangeServ.live = false
 
-	for i := 0; i < 5; i++ {
-		outSlice[i] = Worker(out, "exchange_test")
-	}
-
-	var merged = Merger(outSlice...)
-	var ticker = time.NewTicker(60 * time.Second)
-	var done = make(chan bool)
-
-	exchangeServ.WriteToStorage(exchanges, ticker, done)
-
-	for i := range merged {
-		exchangeServ.storage.Write(i)
-	}
-
-	done <- true
-	ticker.Stop()
+	exchangeServ.Run(exchanges)
 }

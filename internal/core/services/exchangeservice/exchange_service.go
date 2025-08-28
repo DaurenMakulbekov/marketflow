@@ -12,20 +12,21 @@ import (
 
 	"marketflow/internal/core/domain"
 	"marketflow/internal/core/ports"
-	//"marketflow/internal/repositories/storage"
 )
 
 type exchangeService struct {
 	exchangeRepository ports.ExchangeRepository
 	redisRepository    ports.RedisRepository
 	postgresRepository ports.PostgresRepository
+	storage            ports.Storage
 }
 
-func NewExchangeService(exchangeRepo ports.ExchangeRepository, redisRepo ports.RedisRepository, postgresRepo ports.PostgresRepository) *exchangeService {
+func NewExchangeService(exchangeRepo ports.ExchangeRepository, redisRepo ports.RedisRepository, postgresRepo ports.PostgresRepository, storageRepo ports.Storage) *exchangeService {
 	return &exchangeService{
 		exchangeRepository: exchangeRepo,
 		redisRepository:    redisRepo,
 		postgresRepository: postgresRepo,
+		storage:            storageRepo,
 	}
 }
 
@@ -114,14 +115,24 @@ func CreateHashTable(exchanges, pairNames []string) map[string]map[string]map[st
 	return m
 }
 
-func (exchangeServ *exchangeService) Aggregate(exchanges, pairNames []string, m map[string]map[string]map[string]float64) []domain.Exchange {
+func (exchangeServ *exchangeService) Aggregate(exchanges, pairNames []string, m map[string]map[string]map[string]float64) ([]domain.Exchange, []domain.Exchange) {
+	var result []domain.Exchange
+
 	exchangesData, err := exchangeServ.redisRepository.ReadAll(exchanges, pairNames)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 	}
+	if len(exchangesData) > 0 {
+		result = append(result, exchangesData...)
+	}
 
-	for i := range exchangesData {
-		var data = exchangesData[i]
+	var storageData = exchangeServ.storage.GetAll()
+	if len(storageData) > 0 {
+		result = append(result, storageData...)
+	}
+
+	for i := range result {
+		var data = result[i]
 
 		m[data.Exchange][data.Symbol]["avg"] += data.Price
 
@@ -135,7 +146,7 @@ func (exchangeServ *exchangeService) Aggregate(exchanges, pairNames []string, m 
 		m[data.Exchange][data.Symbol]["count"]++
 	}
 
-	return exchangesData
+	return exchangesData, storageData
 }
 
 func GetAggregatedData(exchanges, pairNames []string, m map[string]map[string]map[string]float64) []domain.Exchanges {
@@ -143,16 +154,18 @@ func GetAggregatedData(exchanges, pairNames []string, m map[string]map[string]ma
 
 	for i := range exchanges {
 		for j := range pairNames {
-			var exchange = domain.Exchanges{
-				PairName:  pairNames[j],
-				Exchange:  exchanges[i],
-				Timestamp: time.Now(),
-				AvgPrice:  m[exchanges[i]][pairNames[j]]["avg"] / m[exchanges[i]][pairNames[j]]["count"],
-				MinPrice:  m[exchanges[i]][pairNames[j]]["min"],
-				MaxPrice:  m[exchanges[i]][pairNames[j]]["max"],
-			}
+			if m[exchanges[i]][pairNames[j]]["count"] > 0 {
+				var exchange = domain.Exchanges{
+					PairName:  pairNames[j],
+					Exchange:  exchanges[i],
+					Timestamp: time.Now(),
+					AvgPrice:  m[exchanges[i]][pairNames[j]]["avg"] / m[exchanges[i]][pairNames[j]]["count"],
+					MinPrice:  m[exchanges[i]][pairNames[j]]["min"],
+					MaxPrice:  m[exchanges[i]][pairNames[j]]["max"],
+				}
 
-			aggregatedData = append(aggregatedData, exchange)
+				aggregatedData = append(aggregatedData, exchange)
+			}
 		}
 	}
 
@@ -169,7 +182,7 @@ func (exchangeServ *exchangeService) WriteToStorage(exchanges []string, ticker *
 				return
 			case <-ticker.C:
 				var m = CreateHashTable(exchanges, pairNames)
-				var exchangesData = exchangeServ.Aggregate(exchanges, pairNames, m)
+				exchangesData, storageData := exchangeServ.Aggregate(exchanges, pairNames, m)
 				var aggregatedData = GetAggregatedData(exchanges, pairNames, m)
 
 				var err = exchangeServ.postgresRepository.Write(aggregatedData)
@@ -181,6 +194,8 @@ func (exchangeServ *exchangeService) WriteToStorage(exchanges []string, ticker *
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err.Error())
 				}
+
+				exchangeServ.storage.DeleteAll(storageData)
 			}
 		}
 	}()
@@ -193,19 +208,20 @@ func (exchangeServ *exchangeService) RedisConnect(doneRedisConn chan bool, healt
 
 		var ticker = time.NewTicker(time.Second)
 		var done = make(chan bool)
-		defer close(done)
 
 		go func() {
+			defer close(done)
+
 			for {
 				select {
 				case <-doneRedisConn:
-					done <- true
+					return
 				case <-ticker.C:
 					exchangeServ.redisRepository.Reconnect()
 					var err = exchangeServ.redisRepository.CheckConnection()
 					if err == nil {
 						log.Println("Connected to Redis")
-						done <- true
+						return
 					}
 				}
 			}
@@ -223,27 +239,29 @@ func (exchangeServ *exchangeService) LiveMode() {
 	var out = exchangeServ.Distributor(exchanges)
 
 	var merged = Merger(out...)
+
 	var ticker = time.NewTicker(60 * time.Second)
 	var done = make(chan bool)
 	defer close(done)
 
 	exchangeServ.WriteToStorage(exchanges, ticker, done)
 
-	//var st = storage.NewStorage()
 	var healthy bool = true
 	var doneRedisConn = make(chan bool)
 	defer close(doneRedisConn)
 
 	for i := range merged {
-		var err = exchangeServ.redisRepository.Write(i)
-		if err != nil {
-			if healthy {
+		if healthy {
+			var err = exchangeServ.redisRepository.Write(i)
+			if err != nil {
 				healthy = false
+				exchangeServ.storage.Write(i)
 				go exchangeServ.RedisConnect(doneRedisConn, &healthy)
 
 				fmt.Fprintln(os.Stderr, err.Error())
 			}
-			//st.Write(i)
+		} else {
+			exchangeServ.storage.Write(i)
 		}
 	}
 
@@ -268,7 +286,7 @@ func (exchangeServ *exchangeService) TestMode() {
 	exchangeServ.WriteToStorage(exchanges, ticker, done)
 
 	for i := range merged {
-		exchangeServ.redisRepository.Write(i)
+		exchangeServ.storage.Write(i)
 	}
 
 	done <- true

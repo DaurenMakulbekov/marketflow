@@ -12,6 +12,7 @@ import (
 	"marketflow/internal/repositories/exchangerepository"
 	"marketflow/internal/repositories/postgresrepository"
 	"marketflow/internal/repositories/redisrepository"
+	"marketflow/internal/repositories/storage"
 	"net/http"
 
 	"os/signal"
@@ -27,8 +28,9 @@ func main() {
 
 	var redisRepository = redisrepository.NewRedisRepository(config.Redis, ctx)
 	var postgresRepository = postgresrepository.NewPostgresRepository(config.DB)
+	var storageRepository = storage.NewStorage()
 	var exchangeRepos = exchangerepository.NewExchangeRepository(config.Exchanges)
-	var exchangeService = exchangeservice.NewExchangeService(exchangeRepos, redisRepository, postgresRepository)
+	var exchangeService = exchangeservice.NewExchangeService(exchangeRepos, redisRepository, postgresRepository, storageRepository)
 	var exchangeHandler = exchangehandler.NewExchangeHandler(exchangeService)
 
 	var mux = http.NewServeMux()

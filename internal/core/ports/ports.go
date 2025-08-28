@@ -25,3 +25,9 @@ type RedisRepository interface {
 type PostgresRepository interface {
 	Write(exchange []domain.Exchanges) error
 }
+
+type Storage interface {
+	Write(exchange domain.Exchange)
+	GetAll() []domain.Exchange
+	DeleteAll(exchanges []domain.Exchange)
+}

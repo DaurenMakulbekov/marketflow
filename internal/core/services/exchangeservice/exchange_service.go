@@ -242,9 +242,9 @@ func (exchangeServ *exchangeService) RedisConnect(doneRedisConn chan bool, healt
 	*healthy = true
 }
 
-func (exchangeServ *exchangeService) Run(exchanges []string) {
+func (exchangeServ *exchangeService) RunLive() {
+	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
 	var out = exchangeServ.Distributor(exchanges)
-
 	var merged = Merger(out...)
 
 	var ticker = time.NewTicker(60 * time.Second)
@@ -278,8 +278,6 @@ func (exchangeServ *exchangeService) Run(exchanges []string) {
 }
 
 func (exchangeServ *exchangeService) LiveMode() {
-	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
-
 	if exchangeServ.test == true {
 		exchangeServ.exchangeRepository.CloseTest()
 	}
@@ -287,7 +285,7 @@ func (exchangeServ *exchangeService) LiveMode() {
 	exchangeServ.test = false
 
 	if exchangeServ.liveStarted == false {
-		exchangeServ.Run(exchanges)
+		go exchangeServ.RunLive()
 		exchangeServ.liveStarted = true
 	}
 }
@@ -297,5 +295,24 @@ func (exchangeServ *exchangeService) TestMode() {
 	exchangeServ.test = true
 	exchangeServ.live = false
 
-	exchangeServ.Run(exchanges)
+	var out = exchangeServ.Distributor(exchanges)
+	var merged = Merger(out...)
+
+	var ticker = time.NewTicker(60 * time.Second)
+	var done = make(chan bool)
+	defer close(done)
+
+	exchangeServ.WriteToStorage(exchanges, ticker, done)
+
+	for i := range merged {
+		var err = exchangeServ.redisRepository.Write(i)
+		if err != nil {
+			exchangeServ.storage.Write(i)
+
+			//fmt.Fprintln(os.Stderr, err.Error())
+		}
+	}
+
+	done <- true
+	ticker.Stop()
 }

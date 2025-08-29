@@ -35,6 +35,8 @@ func main() {
 
 	var mux = http.NewServeMux()
 
+	mux.HandleFunc("GET /prices/latest/{symbol}", exchangeHandler.LatestSymbolHandler)
+	mux.HandleFunc("GET /prices/latest/{exchange}/{symbol}", exchangeHandler.LatestExchangeSymbolHandler)
 	mux.HandleFunc("POST /mode/live", exchangeHandler.LiveModeHandler)
 	mux.HandleFunc("POST /mode/test", exchangeHandler.TestModeHandler)
 

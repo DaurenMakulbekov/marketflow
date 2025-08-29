@@ -13,6 +13,9 @@ type ExchangeRepository interface {
 type ExchangeService interface {
 	LiveMode()
 	TestMode()
+
+	GetLatestSymbol(symbol string) (domain.Exchange, error)
+	GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error)
 }
 
 type RedisRepository interface {
@@ -21,6 +24,8 @@ type RedisRepository interface {
 	DeleteAll(exchanges []domain.Exchange) error
 	CheckConnection() error
 	Reconnect()
+
+	GetLatestSymbol(exchange, symbol string) (domain.Exchange, error)
 }
 
 type PostgresRepository interface {

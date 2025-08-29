@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"time"
 )
 
@@ -20,3 +21,6 @@ type Exchange struct {
 	Price     float64 `json:"price"`
 	Timestamp int64   `json:"timestamp"`
 }
+
+var ErrorNotFound = errors.New("Not Found")
+var ErrorBadRequest = errors.New("Incorrect input")

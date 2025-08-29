@@ -245,6 +245,7 @@ func (exchangeServ *exchangeService) RedisConnect(doneRedisConn chan bool, healt
 func (exchangeServ *exchangeService) RunLive() {
 	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
 	var out = exchangeServ.Distributor(exchanges)
+	exchangeServ.liveStarted = true
 	var merged = Merger(out...)
 
 	var ticker = time.NewTicker(60 * time.Second)
@@ -278,6 +279,9 @@ func (exchangeServ *exchangeService) RunLive() {
 }
 
 func (exchangeServ *exchangeService) LiveMode() {
+	if exchangeServ.live == true {
+		return
+	}
 	if exchangeServ.test == true {
 		exchangeServ.exchangeRepository.CloseTest()
 	}
@@ -286,15 +290,11 @@ func (exchangeServ *exchangeService) LiveMode() {
 
 	if exchangeServ.liveStarted == false {
 		go exchangeServ.RunLive()
-		exchangeServ.liveStarted = true
 	}
 }
 
-func (exchangeServ *exchangeService) TestMode() {
+func (exchangeServ *exchangeService) RunTest() {
 	var exchanges = []string{"exchange1_test", "exchange2_test", "exchange3_test"}
-	exchangeServ.test = true
-	exchangeServ.live = false
-
 	var out = exchangeServ.Distributor(exchanges)
 	var merged = Merger(out...)
 
@@ -315,4 +315,14 @@ func (exchangeServ *exchangeService) TestMode() {
 
 	done <- true
 	ticker.Stop()
+}
+
+func (exchangeServ *exchangeService) TestMode() {
+	if exchangeServ.test == true {
+		return
+	}
+	exchangeServ.test = true
+	exchangeServ.live = false
+
+	go exchangeServ.RunTest()
 }

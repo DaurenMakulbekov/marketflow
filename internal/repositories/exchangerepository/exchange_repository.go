@@ -154,7 +154,6 @@ func (exchangeRepo *exchangeRepository) Generator() <-chan string {
 		for {
 			select {
 			case <-exchangeRepo.doneTest:
-				fmt.Printf("\nTest done closed\n\n")
 				return
 			default:
 				for i := range pairNames {

@@ -16,9 +16,9 @@ func (exchangeHandl *exchangeHandler) LatestSymbolHandler(w http.ResponseWriter,
 
 	exchange, err := exchangeHandl.exchangeService.GetLatestSymbol(symbol)
 	if err != nil {
-		if errors.Is(err, domain.ErrorBadRequest) {
-			PrintErrorMessage(w, req, http.StatusBadRequest, "Incorrect input")
-			logger.Error("Incorrect input", "method", "GET", "status", 400)
+		if errors.Is(err, domain.ErrorNotFound) {
+			PrintErrorMessage(w, req, http.StatusNotFound, "Not Found")
+			logger.Error("Not Found", "method", "GET", "status", 404)
 		}
 		return
 	}
@@ -43,9 +43,9 @@ func (exchangeHandl *exchangeHandler) LatestExchangeSymbolHandler(w http.Respons
 
 	result, err := exchangeHandl.exchangeService.GetLatestExchangeSymbol(exchange, symbol)
 	if err != nil {
-		if errors.Is(err, domain.ErrorBadRequest) {
-			PrintErrorMessage(w, req, http.StatusBadRequest, "Incorrect input")
-			logger.Error("Incorrect input", "method", "GET", "status", 400)
+		if errors.Is(err, domain.ErrorNotFound) {
+			PrintErrorMessage(w, req, http.StatusNotFound, "Not Found")
+			logger.Error("Not Found", "method", "GET", "status", 404)
 		}
 		return
 	}

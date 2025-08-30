@@ -11,7 +11,7 @@ func (exchangeServ *exchangeService) GetLatestSymbol(symbol string) (domain.Exch
 	for i := range exchanges {
 		exchange, err := exchangeServ.redisRepository.GetLatestSymbol(exchanges[i], symbol)
 		if err != nil {
-			return exchange, err
+			return exchange, domain.ErrorNotFound
 		}
 
 		result = append(result, exchange)
@@ -25,7 +25,7 @@ func (exchangeServ *exchangeService) GetLatestSymbol(symbol string) (domain.Exch
 func (exchangeServ *exchangeService) GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error) {
 	result, err := exchangeServ.redisRepository.GetLatestSymbol(exchange, symbol)
 	if err != nil {
-		return result, err
+		return result, domain.ErrorNotFound
 	}
 
 	return result, nil
@@ -38,7 +38,8 @@ func GetLatest(exchanges []domain.Exchange) domain.Exchange {
 	for i := range exchanges {
 		if i == 0 {
 			latest = exchanges[i].Timestamp
-		} else if latest > exchanges[i].Timestamp {
+			result = exchanges[i]
+		} else if latest < exchanges[i].Timestamp {
 			latest = exchanges[i].Timestamp
 			result = exchanges[i]
 		}

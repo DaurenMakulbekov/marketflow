@@ -16,6 +16,7 @@ type ExchangeService interface {
 
 	GetLatestSymbol(symbol string) (domain.Exchange, error)
 	GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error)
+	GetHighestSymbol(symbol string) (domain.Price, error)
 }
 
 type RedisRepository interface {
@@ -30,6 +31,7 @@ type RedisRepository interface {
 
 type PostgresRepository interface {
 	Write(exchange []domain.Exchanges) error
+	GetHighestSymbol(symbol string) (domain.Price, error)
 }
 
 type Storage interface {

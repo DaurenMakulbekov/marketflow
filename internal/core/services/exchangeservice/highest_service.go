@@ -1,17 +1,17 @@
-//package exchangeservice
-//
-//import (
-//	"marketflow/internal/core/domain"
-//)
-//
-//func (exchangeServ *exchangeService) GetHighestSymbol(symbol string) (domain.Exchanges, error) {
-//	exchange, err := exchangeServ.postgresRepository.GetHighestSymbol(symbol)
-//	if err != nil {
-//		return exchange, err
-//	}
-//
-//	return exchange, nil
-//}
+package exchangeservice
+
+import (
+	"marketflow/internal/core/domain"
+)
+
+func (exchangeServ *exchangeService) GetHighestSymbol(symbol string) (domain.Price, error) {
+	exchange, err := exchangeServ.postgresRepository.GetHighestSymbol(symbol)
+	if err != nil {
+		return exchange, err
+	}
+
+	return exchange, nil
+}
 
 /*  */
 //var t = time.Now()

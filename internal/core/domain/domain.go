@@ -22,5 +22,9 @@ type Exchange struct {
 	Timestamp int64   `json:"timestamp"`
 }
 
+type Price struct {
+	Price float64
+}
+
 var ErrorNotFound = errors.New("Not Found")
 var ErrorBadRequest = errors.New("Incorrect input")

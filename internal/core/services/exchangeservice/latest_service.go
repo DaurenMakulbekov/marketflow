@@ -5,25 +5,25 @@ import (
 )
 
 func (exchangeServ *exchangeService) GetLatestSymbol(symbol string) (domain.Exchange, error) {
-	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
-	var result []domain.Exchange
+	var exchanges = exchangeServ.exchangeRepository.GetExchangesBySymbol(symbol)
+	var result domain.Exchange
 
-	for i := range exchanges {
-		exchange, err := exchangeServ.redisRepository.GetLatestSymbol(exchanges[i], symbol)
-		if err != nil {
-			return exchange, domain.ErrorNotFound
-		}
-
-		result = append(result, exchange)
+	results, err := exchangeServ.redisRepository.GetLatestSymbol(exchanges, symbol)
+	if err != nil {
+		return result, domain.ErrorNotFound
 	}
 
-	var exchange = GetLatest(result)
+	if len(results) == 0 {
+		return result, domain.ErrorNotFound
+	}
 
-	return exchange, nil
+	result = GetLatest(results)
+
+	return result, nil
 }
 
 func (exchangeServ *exchangeService) GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error) {
-	result, err := exchangeServ.redisRepository.GetLatestSymbol(exchange, symbol)
+	result, err := exchangeServ.redisRepository.GetLatestExchangeSymbol(exchange, symbol)
 	if err != nil {
 		return result, domain.ErrorNotFound
 	}

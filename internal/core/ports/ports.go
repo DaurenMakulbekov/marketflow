@@ -8,6 +8,7 @@ type ExchangeRepository interface {
 	GetFromExchange(exchange string) <-chan string
 	Generator() <-chan string
 	CloseTest()
+	GetExchangesBySymbol(symbol string) []string
 }
 
 type ExchangeService interface {
@@ -26,7 +27,8 @@ type RedisRepository interface {
 	CheckConnection() error
 	Reconnect()
 
-	GetLatestSymbol(exchange, symbol string) (domain.Exchange, error)
+	GetLatestSymbol(exchanges []string, symbol string) ([]domain.Exchange, error)
+	GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error)
 }
 
 type PostgresRepository interface {

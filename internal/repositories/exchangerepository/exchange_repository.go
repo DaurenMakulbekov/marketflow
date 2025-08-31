@@ -10,16 +10,21 @@ import (
 	"marketflow/internal/infrastructure/config"
 	"math/rand/v2"
 	"net"
+	"slices"
 	"sync"
 
 	"time"
 )
 
 type exchangeRepository struct {
-	table    map[string]*config.Exchange
-	done     chan bool
-	doneTest chan bool
-	doneWG   sync.WaitGroup
+	table         map[string]*config.Exchange
+	done          chan bool
+	doneTest      chan bool
+	doneWG        sync.WaitGroup
+	exchanges     []string
+	pairNames     []string
+	exchangesTest []string
+	pairNamesTest []string
 }
 
 func NewExchangeRepository(configs []*config.Exchange) *exchangeRepository {
@@ -27,15 +32,22 @@ func NewExchangeRepository(configs []*config.Exchange) *exchangeRepository {
 	var done = make(chan bool)
 	var doneTest = make(chan bool)
 	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
+	var pairNames = []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
+	var exchangesTest = []string{"exchange1_test", "exchange2_test", "exchange3_test"}
+	var pairNamesTest = []string{"BTCUSDT_test", "DOGEUSDT_test", "TONUSDT_test", "SOLUSDT_test", "ETHUSDT_test"}
 
 	for i := range exchanges {
 		table[exchanges[i]] = configs[i]
 	}
 
 	return &exchangeRepository{
-		table:    table,
-		done:     done,
-		doneTest: doneTest,
+		table:         table,
+		done:          done,
+		doneTest:      doneTest,
+		exchanges:     exchanges,
+		pairNames:     pairNames,
+		exchangesTest: exchangesTest,
+		pairNamesTest: pairNamesTest,
 	}
 }
 
@@ -146,7 +158,7 @@ func (exchangeRepo *exchangeRepository) GetFromExchange(exchange string) <-chan 
 
 func (exchangeRepo *exchangeRepository) Generator() <-chan string {
 	var out = make(chan string)
-	var pairNames = []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
+	var pairNames = exchangeRepo.pairNamesTest
 
 	go func() {
 		defer close(out)
@@ -162,15 +174,15 @@ func (exchangeRepo *exchangeRepository) Generator() <-chan string {
 						Timestamp: time.Now().UnixMilli(),
 					}
 
-					if pairNames[i] == "BTCUSDT" {
+					if pairNames[i] == "BTCUSDT_test" {
 						exchange.Price = (rand.Float64() * 6000) + 97000
-					} else if pairNames[i] == "DOGEUSDT" {
+					} else if pairNames[i] == "DOGEUSDT_test" {
 						exchange.Price = (rand.Float64() * 0.07) + 0.28
-					} else if pairNames[i] == "TONUSDT" {
+					} else if pairNames[i] == "TONUSDT_test" {
 						exchange.Price = (rand.Float64() * 1.1) + 3.4
-					} else if pairNames[i] == "SOLUSDT" {
+					} else if pairNames[i] == "SOLUSDT_test" {
 						exchange.Price = (rand.Float64() * 85) + 197
-					} else if pairNames[i] == "ETHUSDT" {
+					} else if pairNames[i] == "ETHUSDT_test" {
 						exchange.Price = (rand.Float64() * 470) + 2627
 					}
 
@@ -183,4 +195,18 @@ func (exchangeRepo *exchangeRepository) Generator() <-chan string {
 	}()
 
 	return out
+}
+
+func (exchangeRepo *exchangeRepository) GetExchangesBySymbol(symbol string) []string {
+	var res = slices.Contains(exchangeRepo.pairNames, symbol)
+	if res == true {
+		return exchangeRepo.exchanges
+	}
+
+	var resTest = slices.Contains(exchangeRepo.pairNamesTest, symbol)
+	if resTest == true {
+		return exchangeRepo.exchangesTest
+	}
+
+	return nil
 }

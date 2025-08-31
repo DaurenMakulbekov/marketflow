@@ -22,8 +22,15 @@ type Exchange struct {
 	Timestamp int64   `json:"timestamp"`
 }
 
-type Price struct {
-	Price float64
+type PriceSymbol struct {
+	Symbol string
+	Price  float64
+}
+
+type PriceExchangeSymbol struct {
+	Exchange string
+	Symbol   string
+	Price    float64
 }
 
 var ErrorNotFound = errors.New("Not Found")

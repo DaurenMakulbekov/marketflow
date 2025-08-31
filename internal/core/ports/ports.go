@@ -2,6 +2,7 @@ package ports
 
 import (
 	"marketflow/internal/core/domain"
+	"time"
 )
 
 type ExchangeRepository interface {
@@ -17,7 +18,10 @@ type ExchangeService interface {
 
 	GetLatestSymbol(symbol string) (domain.Exchange, error)
 	GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error)
-	GetHighestSymbol(symbol string) (domain.Price, error)
+	GetHighestSymbol(symbol string) (domain.PriceSymbol, error)
+	GetHighestExchangeSymbol(exchange, symbol string) (domain.PriceExchangeSymbol, error)
+	GetHighestSymbolByPeriod(symbol, period string) (domain.PriceSymbol, error)
+	GetHighestExchangeSymbolByPeriod(exchange, symbol, period string) (domain.PriceExchangeSymbol, error)
 }
 
 type RedisRepository interface {
@@ -29,11 +33,15 @@ type RedisRepository interface {
 
 	GetLatestSymbol(exchanges []string, symbol string) ([]domain.Exchange, error)
 	GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error)
+	GetPriceByPeriod(exchanges []string, symbol, period string) ([]domain.Exchange, error)
 }
 
 type PostgresRepository interface {
 	Write(exchange []domain.Exchanges) error
-	GetHighestSymbol(symbol string) (domain.Price, error)
+	GetHighestSymbol(symbol string) (domain.PriceSymbol, error)
+	GetHighestExchangeSymbol(exchange, symbol string) (domain.PriceExchangeSymbol, error)
+	GetHighestSymbolByPeriod(symbol string, period time.Time) (domain.PriceSymbol, error)
+	GetHighestExchangeSymbolByPeriod(exchange, symbol string, period time.Time) (domain.PriceExchangeSymbol, error)
 }
 
 type Storage interface {

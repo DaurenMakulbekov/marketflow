@@ -41,6 +41,9 @@ func main() {
 	mux.HandleFunc("GET /prices/highest/{symbol}", exchangeHandler.HighestPriceHandler)
 	mux.HandleFunc("GET /prices/highest/{exchange}/{symbol}", exchangeHandler.HighestExchangePriceHandler)
 
+	mux.HandleFunc("GET /prices/lowest/{symbol}", exchangeHandler.LowestPriceHandler)
+	mux.HandleFunc("GET /prices/lowest/{exchange}/{symbol}", exchangeHandler.LowestExchangePriceHandler)
+
 	mux.HandleFunc("POST /mode/live", exchangeHandler.LiveModeHandler)
 	mux.HandleFunc("POST /mode/test", exchangeHandler.TestModeHandler)
 

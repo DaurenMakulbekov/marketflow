@@ -18,8 +18,8 @@ type ExchangeService interface {
 	LiveMode()
 	TestMode()
 
-	GetLatestSymbol(symbol string) (domain.Exchange, error)
-	GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error)
+	GetLatestPrice(symbol string) (domain.Exchange, error)
+	GetLatestExchangePrice(exchange, symbol string) (domain.Exchange, error)
 
 	GetHighestPrice(symbol string) (domain.PriceSymbol, error)
 	GetHighestExchangePrice(exchange, symbol string) (domain.PriceExchangeSymbol, error)
@@ -34,8 +34,9 @@ type RedisRepository interface {
 	CheckConnection() error
 	Reconnect()
 
-	GetLatestSymbol(exchanges []string, symbol string) ([]domain.Exchange, error)
-	GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error)
+	GetLatestPrice(exchanges []string, symbol string) ([]domain.Exchange, error)
+	GetLatestExchangePrice(exchange, symbol string) (domain.Exchange, error)
+
 	GetPriceByPeriod(exchanges []string, symbol, period string) ([]domain.Exchange, error)
 	GetExchangePriceByPeriod(exchange, symbol, period string) ([]domain.Exchange, error)
 }

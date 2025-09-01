@@ -35,8 +35,8 @@ func main() {
 
 	var mux = http.NewServeMux()
 
-	mux.HandleFunc("GET /prices/latest/{symbol}", exchangeHandler.LatestSymbolHandler)
-	mux.HandleFunc("GET /prices/latest/{exchange}/{symbol}", exchangeHandler.LatestExchangeSymbolHandler)
+	mux.HandleFunc("GET /prices/latest/{symbol}", exchangeHandler.LatestPriceHandler)
+	mux.HandleFunc("GET /prices/latest/{exchange}/{symbol}", exchangeHandler.LatestExchangePriceHandler)
 
 	mux.HandleFunc("GET /prices/highest/{symbol}", exchangeHandler.HighestPriceHandler)
 	mux.HandleFunc("GET /prices/highest/{exchange}/{symbol}", exchangeHandler.HighestExchangePriceHandler)

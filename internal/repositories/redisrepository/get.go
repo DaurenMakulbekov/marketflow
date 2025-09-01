@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func (redisRepo *redisRepository) GetLatestSymbol(exchanges []string, symbol string) ([]domain.Exchange, error) {
+func (redisRepo *redisRepository) GetLatestPrice(exchanges []string, symbol string) ([]domain.Exchange, error) {
 	var exchangesData []domain.Exchange
 	var tx = redisRepo.rdb.TxPipeline()
 
@@ -42,7 +42,7 @@ func (redisRepo *redisRepository) GetLatestSymbol(exchanges []string, symbol str
 	return exchangesData, nil
 }
 
-func (redisRepo *redisRepository) GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error) {
+func (redisRepo *redisRepository) GetLatestExchangePrice(exchange, symbol string) (domain.Exchange, error) {
 	res, err := redisRepo.rdb.XRevRangeN(redisRepo.ctx, exchange+":"+symbol, "+", "-", 1).Result()
 	if err != nil {
 		return domain.Exchange{}, err

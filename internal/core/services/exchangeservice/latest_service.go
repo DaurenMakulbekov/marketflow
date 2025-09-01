@@ -4,11 +4,15 @@ import (
 	"marketflow/internal/core/domain"
 )
 
-func (exchangeServ *exchangeService) GetLatestSymbol(symbol string) (domain.Exchange, error) {
-	var exchanges = exchangeServ.exchangeRepository.GetExchangesBySymbol(symbol)
+func (exchangeServ *exchangeService) GetLatestPrice(symbol string) (domain.Exchange, error) {
 	var result domain.Exchange
+	var exchanges = exchangeServ.exchangeRepository.GetExchangesBySymbol(symbol)
 
-	results, err := exchangeServ.redisRepository.GetLatestSymbol(exchanges, symbol)
+	if len(exchanges) == 0 {
+		return result, domain.ErrorBadRequest
+	}
+
+	results, err := exchangeServ.redisRepository.GetLatestPrice(exchanges, symbol)
 	if err != nil {
 		return result, domain.ErrorNotFound
 	}
@@ -22,8 +26,15 @@ func (exchangeServ *exchangeService) GetLatestSymbol(symbol string) (domain.Exch
 	return result, nil
 }
 
-func (exchangeServ *exchangeService) GetLatestExchangeSymbol(exchange, symbol string) (domain.Exchange, error) {
-	result, err := exchangeServ.redisRepository.GetLatestExchangeSymbol(exchange, symbol)
+func (exchangeServ *exchangeService) GetLatestExchangePrice(exchange, symbol string) (domain.Exchange, error) {
+	var resExchange bool = exchangeServ.exchangeRepository.CheckExchange(exchange)
+	var resSymbol bool = exchangeServ.exchangeRepository.CheckSymbol(symbol)
+
+	if resExchange == false || resSymbol == false {
+		return domain.Exchange{}, domain.ErrorBadRequest
+	}
+
+	result, err := exchangeServ.redisRepository.GetLatestExchangePrice(exchange, symbol)
 	if err != nil {
 		return result, domain.ErrorNotFound
 	}

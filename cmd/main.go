@@ -23,7 +23,6 @@ import (
 
 func main() {
 	var config = config.NewAppConfig()
-
 	var ctx = context.Background()
 
 	var redisRepository = redisrepository.NewRedisRepository(config.Redis, ctx)
@@ -37,13 +36,12 @@ func main() {
 
 	mux.HandleFunc("GET /prices/latest/{symbol}", exchangeHandler.LatestPriceHandler)
 	mux.HandleFunc("GET /prices/latest/{exchange}/{symbol}", exchangeHandler.LatestExchangePriceHandler)
-
 	mux.HandleFunc("GET /prices/highest/{symbol}", exchangeHandler.HighestPriceHandler)
 	mux.HandleFunc("GET /prices/highest/{exchange}/{symbol}", exchangeHandler.HighestExchangePriceHandler)
-
 	mux.HandleFunc("GET /prices/lowest/{symbol}", exchangeHandler.LowestPriceHandler)
 	mux.HandleFunc("GET /prices/lowest/{exchange}/{symbol}", exchangeHandler.LowestExchangePriceHandler)
-
+	mux.HandleFunc("GET /prices/average/{symbol}", exchangeHandler.AveragePriceHandler)
+	mux.HandleFunc("GET /prices/average/{exchange}/{symbol}", exchangeHandler.AverageExchangePriceHandler)
 	mux.HandleFunc("POST /mode/live", exchangeHandler.LiveModeHandler)
 	mux.HandleFunc("POST /mode/test", exchangeHandler.TestModeHandler)
 

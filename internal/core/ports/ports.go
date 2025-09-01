@@ -30,6 +30,10 @@ type ExchangeService interface {
 	GetLowestExchangePrice(exchange, symbol string) (domain.PriceExchangeSymbol, error)
 	GetLowestPriceByPeriod(symbol, period string) (domain.PriceSymbol, error)
 	GetLowestExchangePriceByPeriod(exchange, symbol, period string) (domain.PriceExchangeSymbol, error)
+
+	GetAveragePrice(symbol string) (domain.PriceSymbol, error)
+	GetAverageExchangePrice(exchange, symbol string) (domain.PriceExchangeSymbol, error)
+	GetAverageExchangePriceByPeriod(exchange, symbol, period string) (domain.PriceExchangeSymbol, error)
 }
 
 type RedisRepository interface {
@@ -57,6 +61,10 @@ type PostgresRepository interface {
 	GetLowestExchangePrice(exchange, symbol string) (domain.PriceExchangeSymbol, error)
 	GetLowestPriceByPeriod(symbol string, period time.Time) (domain.PriceSymbol, error)
 	GetLowestExchangePriceByPeriod(exchange, symbol string, period time.Time) (domain.PriceExchangeSymbol, error)
+
+	GetAveragePrice(symbol string) (domain.PriceSymbol, error)
+	GetAverageExchangePrice(exchange, symbol string) (domain.PriceExchangeSymbol, error)
+	GetAverageExchangePriceByPeriod(exchange, symbol string, period time.Time) (domain.PriceExchangeSymbol, error)
 }
 
 type Storage interface {

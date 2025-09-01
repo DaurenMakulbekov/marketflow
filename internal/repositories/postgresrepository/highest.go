@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (postgresRepo *postgresRepository) GetHighestSymbol(symbol string) (domain.PriceSymbol, error) {
+func (postgresRepo *postgresRepository) GetHighestPrice(symbol string) (domain.PriceSymbol, error) {
 	var exchange domain.PriceSymbol
 
 	row := postgresRepo.db.QueryRow("SELECT max(max_price) FROM exchanges WHERE pair_name = $1", symbol)
@@ -21,7 +21,7 @@ func (postgresRepo *postgresRepository) GetHighestSymbol(symbol string) (domain.
 	return exchange, nil
 }
 
-func (postgresRepo *postgresRepository) GetHighestExchangeSymbol(exchange, symbol string) (domain.PriceExchangeSymbol, error) {
+func (postgresRepo *postgresRepository) GetHighestExchangePrice(exchange, symbol string) (domain.PriceExchangeSymbol, error) {
 	var result domain.PriceExchangeSymbol
 
 	row := postgresRepo.db.QueryRow("SELECT max(max_price) FROM exchanges WHERE pair_name = $1 AND exchange = $2", symbol, exchange)
@@ -35,7 +35,7 @@ func (postgresRepo *postgresRepository) GetHighestExchangeSymbol(exchange, symbo
 	return result, nil
 }
 
-func (postgresRepo *postgresRepository) GetHighestSymbolByPeriod(symbol string, period time.Time) (domain.PriceSymbol, error) {
+func (postgresRepo *postgresRepository) GetHighestPriceByPeriod(symbol string, period time.Time) (domain.PriceSymbol, error) {
 	var exchange domain.PriceSymbol
 
 	row := postgresRepo.db.QueryRow("SELECT max(max_price) FROM exchanges WHERE pair_name = $1 AND timestamp >= $2", symbol, period)
@@ -49,7 +49,7 @@ func (postgresRepo *postgresRepository) GetHighestSymbolByPeriod(symbol string, 
 	return exchange, nil
 }
 
-func (postgresRepo *postgresRepository) GetHighestExchangeSymbolByPeriod(exchange, symbol string, period time.Time) (domain.PriceExchangeSymbol, error) {
+func (postgresRepo *postgresRepository) GetHighestExchangePriceByPeriod(exchange, symbol string, period time.Time) (domain.PriceExchangeSymbol, error) {
 	var result domain.PriceExchangeSymbol
 
 	row := postgresRepo.db.QueryRow("SELECT max(max_price) FROM exchanges WHERE pair_name = $1 AND exchange = $2 AND timestamp >= $3", symbol, exchange, period)

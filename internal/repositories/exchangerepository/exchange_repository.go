@@ -198,15 +198,47 @@ func (exchangeRepo *exchangeRepository) Generator() <-chan string {
 }
 
 func (exchangeRepo *exchangeRepository) GetExchangesBySymbol(symbol string) []string {
+	var result []string
+
 	var res = slices.Contains(exchangeRepo.pairNames, symbol)
 	if res == true {
-		return exchangeRepo.exchanges
+		result = exchangeRepo.exchanges
+		return result
 	}
 
 	var resTest = slices.Contains(exchangeRepo.pairNamesTest, symbol)
 	if resTest == true {
-		return exchangeRepo.exchangesTest
+		result = exchangeRepo.exchangesTest
+		return result
 	}
 
-	return nil
+	return result
+}
+
+func (exchangeRepo *exchangeRepository) CheckSymbol(symbol string) bool {
+	var res = slices.Contains(exchangeRepo.pairNames, symbol)
+	if res == true {
+		return true
+	}
+
+	var resTest = slices.Contains(exchangeRepo.pairNamesTest, symbol)
+	if resTest == true {
+		return true
+	}
+
+	return false
+}
+
+func (exchangeRepo *exchangeRepository) CheckExchange(exchange string) bool {
+	var res = slices.Contains(exchangeRepo.exchanges, exchange)
+	if res == true {
+		return true
+	}
+
+	var resTest = slices.Contains(exchangeRepo.exchangesTest, exchange)
+	if resTest == true {
+		return true
+	}
+
+	return false
 }

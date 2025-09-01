@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-func (exchangeHandl *exchangeHandler) HighestSymbolHandler(w http.ResponseWriter, req *http.Request) {
+func (exchangeHandl *exchangeHandler) HighestPriceHandler(w http.ResponseWriter, req *http.Request) {
 	var symbol string = req.PathValue("symbol")
 	var period string = req.URL.Query().Get("period")
 
@@ -20,9 +20,9 @@ func (exchangeHandl *exchangeHandler) HighestSymbolHandler(w http.ResponseWriter
 	var err error
 
 	if len(period) > 0 {
-		result, err = exchangeHandl.exchangeService.GetHighestSymbolByPeriod(symbol, period)
+		result, err = exchangeHandl.exchangeService.GetHighestPriceByPeriod(symbol, period)
 	} else {
-		result, err = exchangeHandl.exchangeService.GetHighestSymbol(symbol)
+		result, err = exchangeHandl.exchangeService.GetHighestPrice(symbol)
 	}
 
 	if err != nil {
@@ -49,7 +49,7 @@ func (exchangeHandl *exchangeHandler) HighestSymbolHandler(w http.ResponseWriter
 	logger.Info("Retrieve a specific symbol", "method", "GET", "status", 200)
 }
 
-func (exchangeHandl *exchangeHandler) HighestExchangeSymbolHandler(w http.ResponseWriter, req *http.Request) {
+func (exchangeHandl *exchangeHandler) HighestExchangePriceHandler(w http.ResponseWriter, req *http.Request) {
 	var exchange string = req.PathValue("exchange")
 	var symbol string = req.PathValue("symbol")
 	var period string = req.URL.Query().Get("period")
@@ -60,9 +60,9 @@ func (exchangeHandl *exchangeHandler) HighestExchangeSymbolHandler(w http.Respon
 	var err error
 
 	if len(period) > 0 {
-		result, err = exchangeHandl.exchangeService.GetHighestExchangeSymbolByPeriod(exchange, symbol, period)
+		result, err = exchangeHandl.exchangeService.GetHighestExchangePriceByPeriod(exchange, symbol, period)
 	} else {
-		result, err = exchangeHandl.exchangeService.GetHighestExchangeSymbol(exchange, symbol)
+		result, err = exchangeHandl.exchangeService.GetHighestExchangePrice(exchange, symbol)
 	}
 
 	if err != nil {

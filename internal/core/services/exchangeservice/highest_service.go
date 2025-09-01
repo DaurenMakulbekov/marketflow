@@ -7,8 +7,14 @@ import (
 	"time"
 )
 
-func (exchangeServ *exchangeService) GetHighestSymbol(symbol string) (domain.PriceSymbol, error) {
-	exchange, err := exchangeServ.postgresRepository.GetHighestSymbol(symbol)
+func (exchangeServ *exchangeService) GetHighestPrice(symbol string) (domain.PriceSymbol, error) {
+	var result bool = exchangeServ.exchangeRepository.CheckSymbol(symbol)
+
+	if result == false {
+		return domain.PriceSymbol{}, domain.ErrorBadRequest
+	}
+
+	exchange, err := exchangeServ.postgresRepository.GetHighestPrice(symbol)
 	if err != nil {
 		return exchange, err
 	}
@@ -18,8 +24,15 @@ func (exchangeServ *exchangeService) GetHighestSymbol(symbol string) (domain.Pri
 	return exchange, nil
 }
 
-func (exchangeServ *exchangeService) GetHighestExchangeSymbol(exchange, symbol string) (domain.PriceExchangeSymbol, error) {
-	result, err := exchangeServ.postgresRepository.GetHighestExchangeSymbol(exchange, symbol)
+func (exchangeServ *exchangeService) GetHighestExchangePrice(exchange, symbol string) (domain.PriceExchangeSymbol, error) {
+	var resExchange bool = exchangeServ.exchangeRepository.CheckExchange(exchange)
+	var resSymbol bool = exchangeServ.exchangeRepository.CheckSymbol(symbol)
+
+	if resExchange == false || resSymbol == false {
+		return domain.PriceExchangeSymbol{}, domain.ErrorBadRequest
+	}
+
+	result, err := exchangeServ.postgresRepository.GetHighestExchangePrice(exchange, symbol)
 	if err != nil {
 		return result, err
 	}
@@ -30,33 +43,41 @@ func (exchangeServ *exchangeService) GetHighestExchangeSymbol(exchange, symbol s
 	return result, nil
 }
 
-func (exchangeServ *exchangeService) GetHighestSymbolByPeriod(symbol, period string) (domain.PriceSymbol, error) {
+func (exchangeServ *exchangeService) GetHighestPriceByPeriod(symbol, period string) (domain.PriceSymbol, error) {
+	var resSymbol bool = exchangeServ.exchangeRepository.CheckSymbol(symbol)
+
+	if resSymbol == false {
+		return domain.PriceSymbol{}, domain.ErrorBadRequest
+	}
+
 	var result domain.PriceSymbol
 	var err error
 
-	s, _ := time.ParseDuration(period)
+	s, err := time.ParseDuration(period)
 
-	var timestamp time.Time
+	if err != nil || strings.Contains(period, "-") {
+		return domain.PriceSymbol{}, domain.ErrorBadRequest
+	}
 
-	if strings.Contains(period, "m") {
-		timestamp = time.Now().Add(-time.Duration(s.Minutes()) * time.Minute)
+	var timeNow = time.Now()
+	var t = timeNow.Add(-time.Duration(s.Seconds()) * time.Second)
+	var timestamp = t.UnixMilli()
 
-		result, err = exchangeServ.postgresRepository.GetHighestSymbolByPeriod(symbol, timestamp)
+	if timeNow.UnixMilli()-timestamp >= 60000 {
+		result, err = exchangeServ.postgresRepository.GetHighestPriceByPeriod(symbol, t)
 		if err != nil {
 			return result, domain.ErrorNotFound
 		}
-	} else if strings.Contains(period, "s") {
-		timestamp = time.Now().Add(-time.Duration(s.Seconds()) * time.Second)
-
+	} else {
 		var exchanges = exchangeServ.exchangeRepository.GetExchangesBySymbol(symbol)
-		var id = strconv.FormatInt(timestamp.UnixMilli(), 10)
+		var id = strconv.FormatInt(timestamp, 10)
 
 		res, err := exchangeServ.redisRepository.GetPriceByPeriod(exchanges, symbol, id)
 		if err != nil {
-			return result, err
+			return result, domain.ErrorNotFound
 		}
 
-		var res1 = GetLatest(res)
+		var res1 = GetHighest(res)
 		result.Price = res1.Price
 	}
 
@@ -65,24 +86,63 @@ func (exchangeServ *exchangeService) GetHighestSymbolByPeriod(symbol, period str
 	return result, nil
 }
 
-func (exchangeServ *exchangeService) GetHighestExchangeSymbolByPeriod(exchange, symbol, period string) (domain.PriceExchangeSymbol, error) {
-	s, _ := time.ParseDuration(period)
+func (exchangeServ *exchangeService) GetHighestExchangePriceByPeriod(exchange, symbol, period string) (domain.PriceExchangeSymbol, error) {
+	var resExchange bool = exchangeServ.exchangeRepository.CheckExchange(exchange)
+	var resSymbol bool = exchangeServ.exchangeRepository.CheckSymbol(symbol)
 
-	var timestamp time.Time
-
-	if strings.Contains(period, "m") {
-		timestamp = time.Now().Add(-time.Duration(s.Minutes()) * time.Minute)
-	} else if strings.Contains(period, "s") {
-		timestamp = time.Now().Add(-time.Duration(s.Seconds()) * time.Second)
+	if resExchange == false || resSymbol == false {
+		return domain.PriceExchangeSymbol{}, domain.ErrorBadRequest
 	}
 
-	result, err := exchangeServ.postgresRepository.GetHighestExchangeSymbolByPeriod(exchange, symbol, timestamp)
-	if err != nil {
-		return result, domain.ErrorNotFound
+	var result domain.PriceExchangeSymbol
+	var err error
+
+	s, err := time.ParseDuration(period)
+
+	if err != nil || strings.Contains(period, "-") {
+		return domain.PriceExchangeSymbol{}, domain.ErrorBadRequest
+	}
+
+	var timeNow = time.Now()
+	var t = timeNow.Add(-time.Duration(s.Seconds()) * time.Second)
+	var timestamp = t.UnixMilli()
+
+	if timeNow.UnixMilli()-timestamp >= 60000 {
+		result, err = exchangeServ.postgresRepository.GetHighestExchangePriceByPeriod(exchange, symbol, t)
+		if err != nil {
+			return result, domain.ErrorNotFound
+		}
+	} else {
+		var id = strconv.FormatInt(timestamp, 10)
+
+		res, err := exchangeServ.redisRepository.GetExchangePriceByPeriod(exchange, symbol, id)
+		if err != nil {
+			return result, domain.ErrorNotFound
+		}
+
+		var res1 = GetHighest(res)
+		result.Price = res1.Price
 	}
 
 	result.Exchange = exchange
 	result.Symbol = symbol
 
 	return result, nil
+}
+
+func GetHighest(exchanges []domain.Exchange) domain.Exchange {
+	var result domain.Exchange
+	var max float64
+
+	for i := range exchanges {
+		if i == 0 {
+			max = exchanges[i].Price
+			result = exchanges[i]
+		} else if max < exchanges[i].Price {
+			max = exchanges[i].Price
+			result = exchanges[i]
+		}
+	}
+
+	return result
 }

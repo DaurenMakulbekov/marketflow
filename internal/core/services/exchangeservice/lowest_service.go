@@ -72,12 +72,20 @@ func (exchangeServ *exchangeService) GetLowestPriceByPeriod(symbol, period strin
 		var exchanges = exchangeServ.exchangeRepository.GetExchangesBySymbol(symbol)
 		var id = strconv.FormatInt(timestamp, 10)
 
-		res, err := exchangeServ.redisRepository.GetPriceByPeriod(exchanges, symbol, id)
+		resRedis, err := exchangeServ.redisRepository.GetPriceByPeriod(exchanges, symbol, id)
 		if err != nil {
+			//return result, domain.ErrorNotFound
+		}
+
+		var resStorage = exchangeServ.storage.GetByPeriod(exchanges, symbol, timestamp)
+
+		if len(resRedis) == 0 && len(resStorage) == 0 {
 			return result, domain.ErrorNotFound
 		}
 
-		var res1 = GetHighest(res)
+		resRedis = append(resRedis, resStorage...)
+
+		var res1 = GetHighest(resRedis)
 		result.Price = res1.Price
 	}
 
@@ -115,12 +123,20 @@ func (exchangeServ *exchangeService) GetLowestExchangePriceByPeriod(exchange, sy
 	} else {
 		var id = strconv.FormatInt(timestamp, 10)
 
-		res, err := exchangeServ.redisRepository.GetExchangePriceByPeriod(exchange, symbol, id)
+		resRedis, err := exchangeServ.redisRepository.GetExchangePriceByPeriod(exchange, symbol, id)
 		if err != nil {
+			//return result, domain.ErrorNotFound
+		}
+
+		var resStorage = exchangeServ.storage.GetByExchangePeriod(exchange, symbol, timestamp)
+
+		if len(resRedis) == 0 && len(resStorage) == 0 {
 			return result, domain.ErrorNotFound
 		}
 
-		var res1 = GetHighest(res)
+		resRedis = append(resRedis, resStorage...)
+
+		var res1 = GetHighest(resRedis)
 		result.Price = res1.Price
 	}
 

@@ -72,12 +72,20 @@ func (exchangeServ *exchangeService) GetAverageExchangePriceByPeriod(exchange, s
 	} else {
 		var id = strconv.FormatInt(timestamp, 10)
 
-		res, err := exchangeServ.redisRepository.GetExchangePriceByPeriod(exchange, symbol, id)
+		resRedis, err := exchangeServ.redisRepository.GetExchangePriceByPeriod(exchange, symbol, id)
 		if err != nil {
+			//return result, domain.ErrorNotFound
+		}
+
+		var resStorage = exchangeServ.storage.GetByExchangePeriod(exchange, symbol, timestamp)
+
+		if len(resRedis) == 0 && len(resStorage) == 0 {
 			return result, domain.ErrorNotFound
 		}
 
-		result.Price = GetAverage(res)
+		resRedis = append(resRedis, resStorage...)
+
+		result.Price = GetAverage(resRedis)
 	}
 
 	result.Exchange = exchange

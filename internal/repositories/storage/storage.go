@@ -73,6 +73,36 @@ func (st *storage) GetByExchangePeriod(exchange string, symbol string, period in
 	return result
 }
 
+func (st *storage) GetLatest(exchanges []string, symbol string) []domain.Exchange {
+	var result []domain.Exchange
+
+	for key := range st.table {
+		for _, v := range st.table[key] {
+			for i := range exchanges {
+				if exchanges[i] == v.Exchange && symbol == v.Symbol {
+					result = append(result, v)
+				}
+			}
+		}
+	}
+
+	return result
+}
+
+func (st *storage) GetLatestByExchange(exchange string, symbol string) []domain.Exchange {
+	var result []domain.Exchange
+
+	for key := range st.table {
+		for _, v := range st.table[key] {
+			if exchange == v.Exchange && symbol == v.Symbol {
+				result = append(result, v)
+			}
+		}
+	}
+
+	return result
+}
+
 func (st *storage) DeleteAll(exchanges []domain.Exchange) {
 	for i := range exchanges {
 		delete(st.table[exchanges[i].Exchange+":"+exchanges[i].Symbol], exchanges[i].ID)

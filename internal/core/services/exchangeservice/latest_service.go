@@ -14,11 +14,16 @@ func (exchangeServ *exchangeService) GetLatestPrice(symbol string) (domain.Excha
 
 	results, err := exchangeServ.redisRepository.GetLatestPrice(exchanges, symbol)
 	if err != nil {
-		return result, domain.ErrorNotFound
+		//return result, domain.ErrorNotFound
 	}
 
 	if len(results) == 0 {
-		return result, domain.ErrorNotFound
+		var resStorage = exchangeServ.storage.GetLatest(exchanges, symbol)
+
+		if len(results) == 0 && len(resStorage) == 0 {
+			return result, domain.ErrorNotFound
+		}
+		results = resStorage
 	}
 
 	result = GetLatest(results)
@@ -36,7 +41,16 @@ func (exchangeServ *exchangeService) GetLatestExchangePrice(exchange, symbol str
 
 	result, err := exchangeServ.redisRepository.GetLatestExchangePrice(exchange, symbol)
 	if err != nil {
-		return result, domain.ErrorNotFound
+		//return result, domain.ErrorNotFound
+	}
+
+	if result.Price == 0 {
+		var resStorage = exchangeServ.storage.GetLatestByExchange(exchange, symbol)
+
+		if result.Price == 0 && len(resStorage) == 0 {
+			return result, domain.ErrorNotFound
+		}
+		result = GetLatest(resStorage)
 	}
 
 	return result, nil

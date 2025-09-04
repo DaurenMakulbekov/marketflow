@@ -73,4 +73,6 @@ type Storage interface {
 	DeleteAll(exchanges []domain.Exchange)
 	GetByPeriod(exchanges []string, symbol string, period int64) []domain.Exchange
 	GetByExchangePeriod(exchange string, symbol string, period int64) []domain.Exchange
+	GetLatest(exchanges []string, symbol string) []domain.Exchange
+	GetLatestByExchange(exchange string, symbol string) []domain.Exchange
 }

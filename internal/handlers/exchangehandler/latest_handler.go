@@ -19,6 +19,9 @@ func (exchangeHandl *exchangeHandler) LatestPriceHandler(w http.ResponseWriter, 
 		if errors.Is(err, domain.ErrorNotFound) {
 			PrintErrorMessage(w, req, http.StatusNotFound, "Not Found")
 			logger.Error("Not Found", "method", "GET", "status", 404)
+		} else {
+			PrintErrorMessage(w, req, http.StatusBadRequest, "Incorrect input")
+			logger.Error("Incorrect Input", "method", "GET", "status", 400)
 		}
 		return
 	}
@@ -46,6 +49,9 @@ func (exchangeHandl *exchangeHandler) LatestExchangePriceHandler(w http.Response
 		if errors.Is(err, domain.ErrorNotFound) {
 			PrintErrorMessage(w, req, http.StatusNotFound, "Not Found")
 			logger.Error("Not Found", "method", "GET", "status", 404)
+		} else {
+			PrintErrorMessage(w, req, http.StatusBadRequest, "Incorrect input")
+			logger.Error("Incorrect Input", "method", "GET", "status", 400)
 		}
 		return
 	}

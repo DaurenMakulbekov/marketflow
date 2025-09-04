@@ -85,7 +85,7 @@ func (exchangeServ *exchangeService) GetLowestPriceByPeriod(symbol, period strin
 
 		resRedis = append(resRedis, resStorage...)
 
-		var res1 = GetHighest(resRedis)
+		var res1 = GetLowest(resRedis)
 		result.Price = res1.Price
 	}
 
@@ -136,7 +136,7 @@ func (exchangeServ *exchangeService) GetLowestExchangePriceByPeriod(exchange, sy
 
 		resRedis = append(resRedis, resStorage...)
 
-		var res1 = GetHighest(resRedis)
+		var res1 = GetLowest(resRedis)
 		result.Price = res1.Price
 	}
 

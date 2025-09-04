@@ -182,6 +182,9 @@ func GetAggregatedData(exchanges, pairNames []string, m map[string]map[string]ma
 }
 
 func (exchangeServ *exchangeService) WriteToStorage(exchanges []string, ticker *time.Ticker, done chan bool) {
+	var storage []domain.Exchanges
+	var cache []domain.Exchange
+	var localstorage []domain.Exchange
 	var pairNames = []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
 
 	go func() {
@@ -190,21 +193,33 @@ func (exchangeServ *exchangeService) WriteToStorage(exchanges []string, ticker *
 			case <-done:
 				return
 			case <-ticker.C:
-				var m = CreateHashTable(exchanges, pairNames)
-				exchangesData, storageData := exchangeServ.Aggregate(exchanges, pairNames, m)
-				var aggregatedData = GetAggregatedData(exchanges, pairNames, m)
+				if len(localstorage) > 0 {
+					exchangeServ.storage.DeleteAll(localstorage)
+					localstorage = []domain.Exchange{}
+				}
+				if len(cache) > 0 {
+					var err = exchangeServ.redisRepository.DeleteAll(cache)
+					if err != nil {
+						fmt.Fprintln(os.Stderr, err.Error())
+					} else {
+						cache = []domain.Exchange{}
+					}
+				}
 
-				var err = exchangeServ.postgresRepository.Write(aggregatedData)
+				var m = CreateHashTable(exchanges, pairNames)
+				cacheData, localstorageData := exchangeServ.Aggregate(exchanges, pairNames, m)
+				var aggregatedData = GetAggregatedData(exchanges, pairNames, m)
+				storage = append(storage, aggregatedData...)
+
+				var err = exchangeServ.postgresRepository.Write(storage)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
+				} else {
+					storage = []domain.Exchanges{}
 				}
 
-				err = exchangeServ.redisRepository.DeleteAll(exchangesData)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err.Error())
-				}
-
-				exchangeServ.storage.DeleteAll(storageData)
+				cache = append(cache, cacheData...)
+				localstorage = append(localstorage, localstorageData...)
 			}
 		}
 	}()

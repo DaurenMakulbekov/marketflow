@@ -254,3 +254,21 @@ func (exchangeRepo *exchangeRepository) CheckExchange(exchange string) bool {
 
 	return false
 }
+
+func (exchangeRepo *exchangeRepository) CheckConnection() []string {
+	var result []string
+
+	for i := range exchangeRepo.exchanges {
+		var config = exchangeRepo.table[exchangeRepo.exchanges[i]]
+
+		conn, err := Connect(config)
+		if err != nil {
+			result = append(result, "Connection failed")
+		} else {
+			result = append(result, "Connected")
+			conn.Close()
+		}
+	}
+
+	return result
+}

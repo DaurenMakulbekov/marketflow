@@ -33,5 +33,12 @@ type PriceExchangeSymbol struct {
 	Price    float64
 }
 
+type SystemStatus struct {
+	Redis     string `json:"redis"`
+	Exchange1 string `json:"exchange1"`
+	Exchange2 string `json:"exchange2"`
+	Exchange3 string `json:"exchange3"`
+}
+
 var ErrorNotFound = errors.New("Not Found")
 var ErrorBadRequest = errors.New("Incorrect input")

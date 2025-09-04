@@ -14,6 +14,7 @@ type ExchangeRepository interface {
 	GetExchangesBySymbol(symbol string) []string
 	CheckSymbol(symbol string) bool
 	CheckExchange(exchange string) bool
+	CheckConnection() []string
 }
 
 type ExchangeService interface {
@@ -36,6 +37,8 @@ type ExchangeService interface {
 	GetAveragePrice(symbol string) (domain.PriceSymbol, error)
 	GetAverageExchangePrice(exchange, symbol string) (domain.PriceExchangeSymbol, error)
 	GetAverageExchangePriceByPeriod(exchange, symbol, period string) (domain.PriceExchangeSymbol, error)
+
+	GetSystemStatus() domain.SystemStatus
 }
 
 type RedisRepository interface {

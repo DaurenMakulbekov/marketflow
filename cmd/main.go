@@ -44,6 +44,7 @@ func main() {
 	mux.HandleFunc("GET /prices/average/{exchange}/{symbol}", exchangeHandler.AverageExchangePriceHandler)
 	mux.HandleFunc("POST /mode/live", exchangeHandler.LiveModeHandler)
 	mux.HandleFunc("POST /mode/test", exchangeHandler.TestModeHandler)
+	mux.HandleFunc("GET /health", exchangeHandler.SystemStatusHandler)
 
 	var server = &http.Server{
 		Addr:    ":8080",

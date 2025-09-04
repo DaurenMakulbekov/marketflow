@@ -181,11 +181,10 @@ func GetAggregatedData(exchanges, pairNames []string, m map[string]map[string]ma
 	return aggregatedData
 }
 
-func (exchangeServ *exchangeService) WriteToStorage(exchanges []string, ticker *time.Ticker, done chan bool) {
+func (exchangeServ *exchangeService) WriteToStorage(exchanges, pairNames []string, ticker *time.Ticker, done chan bool) {
 	var storage []domain.Exchanges
 	var cache []domain.Exchange
 	var localstorage []domain.Exchange
-	var pairNames = []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
 
 	go func() {
 		for {
@@ -258,7 +257,7 @@ func (exchangeServ *exchangeService) RedisConnect(doneRedisConn chan bool, healt
 }
 
 func (exchangeServ *exchangeService) RunLive() {
-	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
+	exchanges, pairNames := exchangeServ.exchangeRepository.GetExchanges()
 	var out = exchangeServ.Distributor(exchanges)
 	exchangeServ.liveStarted = true
 	var merged = Merger(out...)
@@ -267,7 +266,7 @@ func (exchangeServ *exchangeService) RunLive() {
 	var done = make(chan bool)
 	defer close(done)
 
-	exchangeServ.WriteToStorage(exchanges, ticker, done)
+	exchangeServ.WriteToStorage(exchanges, pairNames, ticker, done)
 
 	var healthy bool = true
 	var doneRedisConn = make(chan bool)
@@ -309,7 +308,7 @@ func (exchangeServ *exchangeService) LiveMode() {
 }
 
 func (exchangeServ *exchangeService) RunTest() {
-	var exchanges = []string{"exchange1_test", "exchange2_test", "exchange3_test"}
+	exchanges, pairNames := exchangeServ.exchangeRepository.GetExchangesTest()
 	var out = exchangeServ.Distributor(exchanges)
 	var merged = Merger(out...)
 
@@ -317,7 +316,7 @@ func (exchangeServ *exchangeService) RunTest() {
 	var done = make(chan bool)
 	defer close(done)
 
-	exchangeServ.WriteToStorage(exchanges, ticker, done)
+	exchangeServ.WriteToStorage(exchanges, pairNames, ticker, done)
 
 	for i := range merged {
 		var err = exchangeServ.redisRepository.Write(i)

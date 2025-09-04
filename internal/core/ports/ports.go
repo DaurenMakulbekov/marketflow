@@ -9,6 +9,8 @@ type ExchangeRepository interface {
 	GetFromExchange(exchange string) <-chan string
 	Generator() <-chan string
 	CloseTest()
+	GetExchanges() ([]string, []string)
+	GetExchangesTest() ([]string, []string)
 	GetExchangesBySymbol(symbol string) []string
 	CheckSymbol(symbol string) bool
 	CheckExchange(exchange string) bool

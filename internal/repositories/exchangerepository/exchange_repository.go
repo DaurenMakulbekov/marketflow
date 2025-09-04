@@ -31,10 +31,14 @@ func NewExchangeRepository(configs []*config.Exchange) *exchangeRepository {
 	var table = make(map[string]*config.Exchange)
 	var done = make(chan bool)
 	var doneTest = make(chan bool)
-	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
+	var exchanges []string
 	var pairNames = []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
 	var exchangesTest = []string{"exchange1_test", "exchange2_test", "exchange3_test"}
 	var pairNamesTest = []string{"BTCUSDT_test", "DOGEUSDT_test", "TONUSDT_test", "SOLUSDT_test", "ETHUSDT_test"}
+
+	for i := range configs {
+		exchanges = append(exchanges, configs[i].Name)
+	}
 
 	for i := range exchanges {
 		table[exchanges[i]] = configs[i]
@@ -195,6 +199,14 @@ func (exchangeRepo *exchangeRepository) Generator() <-chan string {
 	}()
 
 	return out
+}
+
+func (exchangeRepo *exchangeRepository) GetExchanges() ([]string, []string) {
+	return exchangeRepo.exchanges, exchangeRepo.pairNames
+}
+
+func (exchangeRepo *exchangeRepository) GetExchangesTest() ([]string, []string) {
+	return exchangeRepo.exchangesTest, exchangeRepo.pairNamesTest
 }
 
 func (exchangeRepo *exchangeRepository) GetExchangesBySymbol(symbol string) []string {

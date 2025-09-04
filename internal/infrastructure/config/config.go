@@ -18,6 +18,7 @@ type Redis struct {
 }
 
 type Exchange struct {
+	Name string
 	Host string
 	Port string
 }
@@ -53,16 +54,19 @@ func NewExchanges() []*Exchange {
 	var exchanges []*Exchange
 
 	var exchange1 = &Exchange{
+		Name: os.Getenv("EXCHANGE1_NAME"),
 		Host: os.Getenv("EXCHANGE1_HOST"),
 		Port: os.Getenv("EXCHANGE1_PORT"),
 	}
 
 	var exchange2 = &Exchange{
+		Name: os.Getenv("EXCHANGE2_NAME"),
 		Host: os.Getenv("EXCHANGE2_HOST"),
 		Port: os.Getenv("EXCHANGE2_PORT"),
 	}
 
 	var exchange3 = &Exchange{
+		Name: os.Getenv("EXCHANGE3_NAME"),
 		Host: os.Getenv("EXCHANGE3_HOST"),
 		Port: os.Getenv("EXCHANGE3_PORT"),
 	}

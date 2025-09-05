@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"log"
@@ -15,13 +16,37 @@ import (
 	"marketflow/internal/repositories/storage"
 	"net/http"
 
+	"flag"
+	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+func helpMessage() {
+	fmt.Println("")
+	fmt.Println("Usage:")
+	fmt.Println("  marketflow [--port <N>]")
+	fmt.Println("  marketflow --help")
+	fmt.Println("")
+	fmt.Println("Options:")
+	fmt.Println("  --port N  Port number")
+	flag.PrintDefaults()
+}
+
 func main() {
+	var port = flag.String("port", "8080", "")
+	flag.Usage = helpMessage
+	flag.Parse()
+
+	number, _ := strconv.Atoi(*port)
+	if number < 1024 || number > 49151 {
+		fmt.Fprintln(os.Stderr, "Error: incorrect port number")
+		os.Exit(1)
+	}
+
 	var config = config.NewAppConfig()
 	var ctx = context.Background()
 
@@ -47,7 +72,7 @@ func main() {
 	mux.HandleFunc("GET /health", exchangeHandler.SystemStatusHandler)
 
 	var server = &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + *port,
 		Handler: mux,
 	}
 

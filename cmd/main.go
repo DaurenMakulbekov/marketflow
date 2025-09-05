@@ -88,7 +88,7 @@ func main() {
 	<-signalCtx.Done()
 
 	log.Println("Shutting down server...")
-	exchangeRepos.Close()
+	exchangeService.Close()
 	time.Sleep(5 * time.Second)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

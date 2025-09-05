@@ -8,6 +8,7 @@ import (
 type ExchangeRepository interface {
 	GetFromExchange(exchange string) <-chan string
 	Generator() <-chan string
+	Close()
 	CloseTest()
 	GetExchanges() ([]string, []string)
 	GetExchangesTest() ([]string, []string)

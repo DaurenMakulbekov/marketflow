@@ -340,3 +340,11 @@ func (exchangeServ *exchangeService) TestMode() {
 
 	go exchangeServ.RunTest()
 }
+
+func (exchangeServ *exchangeService) Close() {
+	if exchangeServ.live == true {
+		exchangeServ.exchangeRepository.Close()
+	} else if exchangeServ.test == true {
+		exchangeServ.exchangeRepository.CloseTest()
+	}
+}

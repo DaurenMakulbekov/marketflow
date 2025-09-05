@@ -40,5 +40,7 @@ type SystemStatus struct {
 	Exchange3 string `json:"exchange3"`
 }
 
-var ErrorNotFound = errors.New("Not Found")
-var ErrorBadRequest = errors.New("Incorrect input")
+var (
+	ErrorNotFound   = errors.New("Not Found")
+	ErrorBadRequest = errors.New("Incorrect input")
+)

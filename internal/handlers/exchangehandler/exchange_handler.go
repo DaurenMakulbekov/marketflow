@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"marketflow/internal/core/ports"
 	"net/http"
 	"os"
+
+	"marketflow/internal/core/ports"
 )
 
 type exchangeHandler struct {
@@ -22,7 +23,7 @@ func NewExchangeHandler(exchangeServ ports.ExchangeService) *exchangeHandler {
 func (exchangeHandl *exchangeHandler) LiveModeHandler(w http.ResponseWriter, req *http.Request) {
 	exchangeHandl.exchangeService.LiveMode()
 
-	var m = map[string]string{"Live mode": "active"}
+	m := map[string]string{"Live mode": "active"}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	w.WriteHeader(http.StatusOK)
@@ -43,7 +44,7 @@ func (exchangeHandl *exchangeHandler) TestModeHandler(w http.ResponseWriter, req
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	var m = map[string]string{"Test mode": "active"}
+	m := map[string]string{"Test mode": "active"}
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
@@ -58,7 +59,7 @@ func (exchangeHandl *exchangeHandler) TestModeHandler(w http.ResponseWriter, req
 }
 
 func (exchangeHandl *exchangeHandler) SystemStatusHandler(w http.ResponseWriter, req *http.Request) {
-	var result = exchangeHandl.exchangeService.GetSystemStatus()
+	result := exchangeHandl.exchangeService.GetSystemStatus()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 

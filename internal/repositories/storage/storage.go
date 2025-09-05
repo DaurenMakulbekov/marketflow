@@ -9,11 +9,11 @@ type storage struct {
 }
 
 func NewStorage() *storage {
-	var table = make(map[string]map[string]domain.Exchange)
-	var exchanges = []string{"exchange1", "exchange2", "exchange3"}
-	var symbols = []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
-	var exchangesTest = []string{"exchange1_test", "exchange2_test", "exchange3_test"}
-	var symbolsTest = []string{"BTCUSDT_test", "DOGEUSDT_test", "TONUSDT_test", "SOLUSDT_test", "ETHUSDT_test"}
+	table := make(map[string]map[string]domain.Exchange)
+	exchanges := []string{"exchange1", "exchange2", "exchange3"}
+	symbols := []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
+	exchangesTest := []string{"exchange1_test", "exchange2_test", "exchange3_test"}
+	symbolsTest := []string{"BTCUSDT_test", "DOGEUSDT_test", "TONUSDT_test", "SOLUSDT_test", "ETHUSDT_test"}
 
 	for i := range exchanges {
 		for j := range symbols {

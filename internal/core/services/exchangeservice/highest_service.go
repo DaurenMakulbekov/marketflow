@@ -1,10 +1,11 @@
 package exchangeservice
 
 import (
-	"marketflow/internal/core/domain"
 	"strconv"
 	"strings"
 	"time"
+
+	"marketflow/internal/core/domain"
 )
 
 func (exchangeServ *exchangeService) GetHighestPrice(symbol string) (domain.PriceSymbol, error) {
@@ -59,9 +60,9 @@ func (exchangeServ *exchangeService) GetHighestPriceByPeriod(symbol, period stri
 		return domain.PriceSymbol{}, domain.ErrorBadRequest
 	}
 
-	var timeNow = time.Now()
-	var t = timeNow.Add(-time.Duration(s.Seconds()) * time.Second)
-	var timestamp = t.UnixMilli()
+	timeNow := time.Now()
+	t := timeNow.Add(-time.Duration(s.Seconds()) * time.Second)
+	timestamp := t.UnixMilli()
 
 	if timeNow.UnixMilli()-timestamp >= 60000 {
 		result, err = exchangeServ.postgresRepository.GetHighestPriceByPeriod(symbol, t)
@@ -69,15 +70,15 @@ func (exchangeServ *exchangeService) GetHighestPriceByPeriod(symbol, period stri
 			return result, domain.ErrorNotFound
 		}
 	} else {
-		var exchanges = exchangeServ.exchangeRepository.GetExchangesBySymbol(symbol)
-		var id = strconv.FormatInt(timestamp, 10)
+		exchanges := exchangeServ.exchangeRepository.GetExchangesBySymbol(symbol)
+		id := strconv.FormatInt(timestamp, 10)
 
 		resRedis, err := exchangeServ.redisRepository.GetPriceByPeriod(exchanges, symbol, id)
 		if err != nil {
-			//return result, domain.ErrorNotFound
+			// return result, domain.ErrorNotFound
 		}
 
-		var resStorage = exchangeServ.storage.GetByPeriod(exchanges, symbol, timestamp)
+		resStorage := exchangeServ.storage.GetByPeriod(exchanges, symbol, timestamp)
 
 		if len(resRedis) == 0 && len(resStorage) == 0 {
 			return result, domain.ErrorNotFound
@@ -85,7 +86,7 @@ func (exchangeServ *exchangeService) GetHighestPriceByPeriod(symbol, period stri
 
 		resRedis = append(resRedis, resStorage...)
 
-		var res1 = GetHighest(resRedis)
+		res1 := GetHighest(resRedis)
 		result.Price = res1.Price
 	}
 
@@ -111,9 +112,9 @@ func (exchangeServ *exchangeService) GetHighestExchangePriceByPeriod(exchange, s
 		return domain.PriceExchangeSymbol{}, domain.ErrorBadRequest
 	}
 
-	var timeNow = time.Now()
-	var t = timeNow.Add(-time.Duration(s.Seconds()) * time.Second)
-	var timestamp = t.UnixMilli()
+	timeNow := time.Now()
+	t := timeNow.Add(-time.Duration(s.Seconds()) * time.Second)
+	timestamp := t.UnixMilli()
 
 	if timeNow.UnixMilli()-timestamp >= 60000 {
 		result, err = exchangeServ.postgresRepository.GetHighestExchangePriceByPeriod(exchange, symbol, t)
@@ -121,14 +122,14 @@ func (exchangeServ *exchangeService) GetHighestExchangePriceByPeriod(exchange, s
 			return result, domain.ErrorNotFound
 		}
 	} else {
-		var id = strconv.FormatInt(timestamp, 10)
+		id := strconv.FormatInt(timestamp, 10)
 
 		resRedis, err := exchangeServ.redisRepository.GetExchangePriceByPeriod(exchange, symbol, id)
 		if err != nil {
-			//return result, domain.ErrorNotFound
+			// return result, domain.ErrorNotFound
 		}
 
-		var resStorage = exchangeServ.storage.GetByExchangePeriod(exchange, symbol, timestamp)
+		resStorage := exchangeServ.storage.GetByExchangePeriod(exchange, symbol, timestamp)
 
 		if len(resRedis) == 0 && len(resStorage) == 0 {
 			return result, domain.ErrorNotFound
@@ -136,7 +137,7 @@ func (exchangeServ *exchangeService) GetHighestExchangePriceByPeriod(exchange, s
 
 		resRedis = append(resRedis, resStorage...)
 
-		var res1 = GetHighest(resRedis)
+		res1 := GetHighest(resRedis)
 		result.Price = res1.Price
 	}
 

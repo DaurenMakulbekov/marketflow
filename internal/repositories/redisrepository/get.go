@@ -2,14 +2,15 @@ package redisrepository
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/redis/go-redis/v9"
 	"marketflow/internal/core/domain"
-	"strconv"
 )
 
 func (redisRepo *redisRepository) GetLatestPrice(exchanges []string, symbol string) ([]domain.Exchange, error) {
 	var exchangesData []domain.Exchange
-	var tx = redisRepo.rdb.TxPipeline()
+	tx := redisRepo.rdb.TxPipeline()
 
 	for i := range exchanges {
 		tx.XRevRangeN(redisRepo.ctx, exchanges[i]+":"+symbol, "+", "-", 1)
@@ -21,13 +22,13 @@ func (redisRepo *redisRepository) GetLatestPrice(exchanges []string, symbol stri
 	}
 
 	for _, c := range cmds {
-		var result = c.(*redis.XMessageSliceCmd).Val()
+		result := c.(*redis.XMessageSliceCmd).Val()
 
 		for i := range result {
 			price, _ := strconv.ParseFloat(result[i].Values["price"].(string), 64)
 			timestamp, _ := strconv.ParseInt(result[i].Values["timestamp"].(string), 10, 64)
 
-			var exchange = domain.Exchange{
+			exchange := domain.Exchange{
 				ID:        result[i].ID,
 				Exchange:  result[i].Values["exchange"].(string),
 				Symbol:    result[i].Values["symbol"].(string),
@@ -55,7 +56,7 @@ func (redisRepo *redisRepository) GetLatestExchangePrice(exchange, symbol string
 	price, _ := strconv.ParseFloat(res[0].Values["price"].(string), 64)
 	timestamp, _ := strconv.ParseInt(res[0].Values["timestamp"].(string), 10, 64)
 
-	var result = domain.Exchange{
+	result := domain.Exchange{
 		ID:        res[0].ID,
 		Exchange:  res[0].Values["exchange"].(string),
 		Symbol:    res[0].Values["symbol"].(string),
@@ -68,7 +69,7 @@ func (redisRepo *redisRepository) GetLatestExchangePrice(exchange, symbol string
 
 func (redisRepo *redisRepository) GetPriceByPeriod(exchanges []string, symbol, period string) ([]domain.Exchange, error) {
 	var exchangesData []domain.Exchange
-	var tx = redisRepo.rdb.TxPipeline()
+	tx := redisRepo.rdb.TxPipeline()
 
 	for i := range exchanges {
 		tx.XRange(redisRepo.ctx, exchanges[i]+":"+symbol, period+"-0", "+")
@@ -80,13 +81,13 @@ func (redisRepo *redisRepository) GetPriceByPeriod(exchanges []string, symbol, p
 	}
 
 	for _, c := range cmds {
-		var result = c.(*redis.XMessageSliceCmd).Val()
+		result := c.(*redis.XMessageSliceCmd).Val()
 
 		for i := range result {
 			price, _ := strconv.ParseFloat(result[i].Values["price"].(string), 64)
 			timestamp, _ := strconv.ParseInt(result[i].Values["timestamp"].(string), 10, 64)
 
-			var exchange = domain.Exchange{
+			exchange := domain.Exchange{
 				ID:        result[i].ID,
 				Exchange:  result[i].Values["exchange"].(string),
 				Symbol:    result[i].Values["symbol"].(string),
@@ -103,7 +104,7 @@ func (redisRepo *redisRepository) GetPriceByPeriod(exchanges []string, symbol, p
 
 func (redisRepo *redisRepository) GetExchangePriceByPeriod(exchange, symbol, period string) ([]domain.Exchange, error) {
 	var exchangesData []domain.Exchange
-	var tx = redisRepo.rdb.TxPipeline()
+	tx := redisRepo.rdb.TxPipeline()
 
 	tx.XRange(redisRepo.ctx, exchange+":"+symbol, period+"-0", "+")
 
@@ -113,13 +114,13 @@ func (redisRepo *redisRepository) GetExchangePriceByPeriod(exchange, symbol, per
 	}
 
 	for _, c := range cmds {
-		var result = c.(*redis.XMessageSliceCmd).Val()
+		result := c.(*redis.XMessageSliceCmd).Val()
 
 		for i := range result {
 			price, _ := strconv.ParseFloat(result[i].Values["price"].(string), 64)
 			timestamp, _ := strconv.ParseInt(result[i].Values["timestamp"].(string), 10, 64)
 
-			var exchange = domain.Exchange{
+			exchange := domain.Exchange{
 				ID:        result[i].ID,
 				Exchange:  result[i].Values["exchange"].(string),
 				Symbol:    result[i].Values["symbol"].(string),

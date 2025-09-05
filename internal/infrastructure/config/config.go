@@ -30,7 +30,7 @@ type AppConfig struct {
 }
 
 func NewDB() *DB {
-	var db = &DB{
+	db := &DB{
 		Host:     os.Getenv("DB_HOST"),
 		User:     os.Getenv("DB_USER"),
 		Password: os.Getenv("DB_PASSWORD"),
@@ -42,7 +42,7 @@ func NewDB() *DB {
 }
 
 func NewRedis() *Redis {
-	var rdb = &Redis{
+	rdb := &Redis{
 		Addr:     os.Getenv("REDIS_ADDR"),
 		Password: os.Getenv("REDIS_PASSWORD"),
 	}
@@ -53,19 +53,19 @@ func NewRedis() *Redis {
 func NewExchanges() []*Exchange {
 	var exchanges []*Exchange
 
-	var exchange1 = &Exchange{
+	exchange1 := &Exchange{
 		Name: os.Getenv("EXCHANGE1_NAME"),
 		Host: os.Getenv("EXCHANGE1_HOST"),
 		Port: os.Getenv("EXCHANGE1_PORT"),
 	}
 
-	var exchange2 = &Exchange{
+	exchange2 := &Exchange{
 		Name: os.Getenv("EXCHANGE2_NAME"),
 		Host: os.Getenv("EXCHANGE2_HOST"),
 		Port: os.Getenv("EXCHANGE2_PORT"),
 	}
 
-	var exchange3 = &Exchange{
+	exchange3 := &Exchange{
 		Name: os.Getenv("EXCHANGE3_NAME"),
 		Host: os.Getenv("EXCHANGE3_HOST"),
 		Port: os.Getenv("EXCHANGE3_PORT"),
@@ -77,7 +77,7 @@ func NewExchanges() []*Exchange {
 }
 
 func NewAppConfig() *AppConfig {
-	var config = &AppConfig{
+	config := &AppConfig{
 		DB:        NewDB(),
 		Redis:     NewRedis(),
 		Exchanges: NewExchanges(),

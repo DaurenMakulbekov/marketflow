@@ -3,10 +3,16 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
 	"time"
 
-	"log"
 	"marketflow/internal/core/services/exchangeservice"
 	"marketflow/internal/handlers/exchangehandler"
 	"marketflow/internal/infrastructure/config"
@@ -14,13 +20,6 @@ import (
 	"marketflow/internal/repositories/postgresrepository"
 	"marketflow/internal/repositories/redisrepository"
 	"marketflow/internal/repositories/storage"
-	"net/http"
-
-	"flag"
-	"os"
-	"os/signal"
-	"strconv"
-	"syscall"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -37,7 +36,7 @@ func helpMessage() {
 }
 
 func main() {
-	var port = flag.String("port", "8080", "")
+	port := flag.String("port", "8080", "")
 	flag.Usage = helpMessage
 	flag.Parse()
 
@@ -47,17 +46,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	var config = config.NewAppConfig()
-	var ctx = context.Background()
+	config := config.NewAppConfig()
+	ctx := context.Background()
 
-	var redisRepository = redisrepository.NewRedisRepository(config.Redis, ctx)
-	var postgresRepository = postgresrepository.NewPostgresRepository(config.DB)
-	var storageRepository = storage.NewStorage()
-	var exchangeRepos = exchangerepository.NewExchangeRepository(config.Exchanges)
-	var exchangeService = exchangeservice.NewExchangeService(exchangeRepos, redisRepository, postgresRepository, storageRepository)
-	var exchangeHandler = exchangehandler.NewExchangeHandler(exchangeService)
+	redisRepository := redisrepository.NewRedisRepository(config.Redis, ctx)
+	postgresRepository := postgresrepository.NewPostgresRepository(config.DB)
+	storageRepository := storage.NewStorage()
+	exchangeRepos := exchangerepository.NewExchangeRepository(config.Exchanges)
+	exchangeService := exchangeservice.NewExchangeService(exchangeRepos, redisRepository, postgresRepository, storageRepository)
+	exchangeHandler := exchangehandler.NewExchangeHandler(exchangeService)
 
-	var mux = http.NewServeMux()
+	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /prices/latest/{symbol}", exchangeHandler.LatestPriceHandler)
 	mux.HandleFunc("GET /prices/latest/{exchange}/{symbol}", exchangeHandler.LatestExchangePriceHandler)
@@ -71,7 +70,7 @@ func main() {
 	mux.HandleFunc("POST /mode/test", exchangeHandler.TestModeHandler)
 	mux.HandleFunc("GET /health", exchangeHandler.SystemStatusHandler)
 
-	var server = &http.Server{
+	server := &http.Server{
 		Addr:    ":" + *port,
 		Handler: mux,
 	}

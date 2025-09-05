@@ -3,9 +3,10 @@ package redisrepository
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"marketflow/internal/core/domain"
 	"marketflow/internal/infrastructure/config"
-	"strconv"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -17,13 +18,13 @@ type redisRepository struct {
 }
 
 func NewRedisRepository(config *config.Redis, ctx context.Context) *redisRepository {
-	var rdb = redis.NewClient(&redis.Options{
+	rdb := redis.NewClient(&redis.Options{
 		Addr:     config.Addr,
 		Password: config.Password,
 		DB:       0,
 	})
 
-	var newRedisRepository = redisRepository{
+	newRedisRepository := redisRepository{
 		rdb:    rdb,
 		ctx:    ctx,
 		config: config,
@@ -52,7 +53,7 @@ func (redisRepo *redisRepository) Write(exchange domain.Exchange) error {
 
 func (redisRepo *redisRepository) ReadAll(exchanges, pairNames []string) ([]domain.Exchange, error) {
 	var exchangesData []domain.Exchange
-	var tx = redisRepo.rdb.TxPipeline()
+	tx := redisRepo.rdb.TxPipeline()
 
 	for i := range exchanges {
 		for j := range pairNames {
@@ -66,13 +67,13 @@ func (redisRepo *redisRepository) ReadAll(exchanges, pairNames []string) ([]doma
 	}
 
 	for _, c := range cmds {
-		var result = c.(*redis.XMessageSliceCmd).Val()
+		result := c.(*redis.XMessageSliceCmd).Val()
 
 		for i := range result {
 			price, _ := strconv.ParseFloat(result[i].Values["price"].(string), 64)
 			timestamp, _ := strconv.ParseInt(result[i].Values["timestamp"].(string), 10, 64)
 
-			var exchange = domain.Exchange{
+			exchange := domain.Exchange{
 				ID:        result[i].ID,
 				Exchange:  result[i].Values["exchange"].(string),
 				Symbol:    result[i].Values["symbol"].(string),
@@ -88,7 +89,7 @@ func (redisRepo *redisRepository) ReadAll(exchanges, pairNames []string) ([]doma
 }
 
 func (redisRepo *redisRepository) DeleteAll(exchanges []domain.Exchange) error {
-	var tx = redisRepo.rdb.TxPipeline()
+	tx := redisRepo.rdb.TxPipeline()
 
 	for i := range exchanges {
 		tx.XDel(redisRepo.ctx, exchanges[i].Exchange+":"+exchanges[i].Symbol, exchanges[i].ID)
@@ -112,7 +113,7 @@ func (redisRepo *redisRepository) CheckConnection() error {
 }
 
 func (redisRepo *redisRepository) Reconnect() {
-	var newRedisRepository = NewRedisRepository(redisRepo.config, redisRepo.ctx)
+	newRedisRepository := NewRedisRepository(redisRepo.config, redisRepo.ctx)
 
 	redisRepo.rdb = newRedisRepository.rdb
 }

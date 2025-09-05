@@ -3,8 +3,9 @@ package postgresrepository
 import (
 	"database/sql"
 	"fmt"
-	"marketflow/internal/core/domain"
 	"time"
+
+	"marketflow/internal/core/domain"
 )
 
 func (postgresRepo *postgresRepository) GetHighestPrice(symbol string) (domain.PriceSymbol, error) {

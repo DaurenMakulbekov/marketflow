@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"marketflow/internal/core/domain"
 	"net/http"
 	"os"
+
+	"marketflow/internal/core/domain"
 )
 
 func (exchangeHandl *exchangeHandler) LatestPriceHandler(w http.ResponseWriter, req *http.Request) {

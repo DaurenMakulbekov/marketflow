@@ -1,8 +1,9 @@
 package ports
 
 import (
-	"marketflow/internal/core/domain"
 	"time"
+
+	"marketflow/internal/core/domain"
 )
 
 type ExchangeRepository interface {

@@ -34,7 +34,7 @@ func NewExchangeService(exchangeRepo ports.ExchangeRepository, redisRepo ports.R
 }
 
 func (exchangeServ *exchangeService) Distributor(exchanges []string) []<-chan domain.Exchange {
-	var outSlice = make([]<-chan domain.Exchange, 15)
+	outSlice := make([]<-chan domain.Exchange, 15)
 	var index int = 0
 
 	for i := range exchanges {
@@ -56,7 +56,7 @@ func (exchangeServ *exchangeService) Distributor(exchanges []string) []<-chan do
 }
 
 func Worker(in <-chan string, exchangeName string) <-chan domain.Exchange {
-	var out = make(chan domain.Exchange)
+	out := make(chan domain.Exchange)
 
 	go func() {
 		defer close(out)
@@ -64,15 +64,15 @@ func Worker(in <-chan string, exchangeName string) <-chan domain.Exchange {
 		for i := range in {
 			var result domain.Exchange
 
-			var decoder = json.NewDecoder(strings.NewReader(i))
+			decoder := json.NewDecoder(strings.NewReader(i))
 
-			var err = decoder.Decode(&result)
+			err := decoder.Decode(&result)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "Error decode:", err)
 			}
 
-			var id = strconv.FormatInt(result.Timestamp, 10)
-			var result1 = domain.Exchange{
+			id := strconv.FormatInt(result.Timestamp, 10)
+			result1 := domain.Exchange{
 				ID:        id,
 				Exchange:  exchangeName,
 				Symbol:    result.Symbol,
@@ -88,7 +88,7 @@ func Worker(in <-chan string, exchangeName string) <-chan domain.Exchange {
 }
 
 func Merger(ins ...<-chan domain.Exchange) <-chan domain.Exchange {
-	var out = make(chan domain.Exchange)
+	out := make(chan domain.Exchange)
 	var wg sync.WaitGroup
 	wg.Add(len(ins))
 
@@ -111,7 +111,7 @@ func Merger(ins ...<-chan domain.Exchange) <-chan domain.Exchange {
 }
 
 func CreateHashTable(exchanges, pairNames []string) map[string]map[string]map[string]float64 {
-	var m = make(map[string]map[string]map[string]float64, 3)
+	m := make(map[string]map[string]map[string]float64, 3)
 
 	for i := range exchanges {
 		m[exchanges[i]] = make(map[string]map[string]float64, 5)
@@ -135,13 +135,13 @@ func (exchangeServ *exchangeService) Aggregate(exchanges, pairNames []string, m 
 		result = append(result, exchangesData...)
 	}
 
-	var storageData = exchangeServ.storage.GetAll()
+	storageData := exchangeServ.storage.GetAll()
 	if len(storageData) > 0 {
 		result = append(result, storageData...)
 	}
 
 	for i := range result {
-		var data = result[i]
+		data := result[i]
 
 		m[data.Exchange][data.Symbol]["avg"] += data.Price
 
@@ -164,7 +164,7 @@ func GetAggregatedData(exchanges, pairNames []string, m map[string]map[string]ma
 	for i := range exchanges {
 		for j := range pairNames {
 			if m[exchanges[i]][pairNames[j]]["count"] > 0 {
-				var exchange = domain.Exchanges{
+				exchange := domain.Exchanges{
 					PairName:  pairNames[j],
 					Exchange:  exchanges[i],
 					Timestamp: time.Now(),
@@ -197,7 +197,7 @@ func (exchangeServ *exchangeService) WriteToStorage(exchanges, pairNames []strin
 					localstorage = []domain.Exchange{}
 				}
 				if len(cache) > 0 {
-					var err = exchangeServ.redisRepository.DeleteAll(cache)
+					err := exchangeServ.redisRepository.DeleteAll(cache)
 					if err != nil {
 						fmt.Fprintln(os.Stderr, err.Error())
 					} else {
@@ -205,12 +205,12 @@ func (exchangeServ *exchangeService) WriteToStorage(exchanges, pairNames []strin
 					}
 				}
 
-				var m = CreateHashTable(exchanges, pairNames)
+				m := CreateHashTable(exchanges, pairNames)
 				cacheData, localstorageData := exchangeServ.Aggregate(exchanges, pairNames, m)
-				var aggregatedData = GetAggregatedData(exchanges, pairNames, m)
+				aggregatedData := GetAggregatedData(exchanges, pairNames, m)
 				storage = append(storage, aggregatedData...)
 
-				var err = exchangeServ.postgresRepository.Write(storage)
+				err := exchangeServ.postgresRepository.Write(storage)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
 				} else {
@@ -225,12 +225,12 @@ func (exchangeServ *exchangeService) WriteToStorage(exchanges, pairNames []strin
 }
 
 func (exchangeServ *exchangeService) RedisConnect(doneRedisConn chan bool, healthy *bool) {
-	var err = exchangeServ.redisRepository.CheckConnection()
+	err := exchangeServ.redisRepository.CheckConnection()
 	if err != nil {
 		log.Printf("Error: %v", err)
 
-		var ticker = time.NewTicker(time.Second)
-		var done = make(chan bool)
+		ticker := time.NewTicker(time.Second)
+		done := make(chan bool)
 
 		go func() {
 			defer close(done)
@@ -241,7 +241,7 @@ func (exchangeServ *exchangeService) RedisConnect(doneRedisConn chan bool, healt
 					return
 				case <-ticker.C:
 					exchangeServ.redisRepository.Reconnect()
-					var err = exchangeServ.redisRepository.CheckConnection()
+					err := exchangeServ.redisRepository.CheckConnection()
 					if err == nil {
 						log.Println("Connected to Redis")
 						return
@@ -258,23 +258,23 @@ func (exchangeServ *exchangeService) RedisConnect(doneRedisConn chan bool, healt
 
 func (exchangeServ *exchangeService) RunLive() {
 	exchanges, pairNames := exchangeServ.exchangeRepository.GetExchanges()
-	var out = exchangeServ.Distributor(exchanges)
+	out := exchangeServ.Distributor(exchanges)
 	exchangeServ.liveStarted = true
-	var merged = Merger(out...)
+	merged := Merger(out...)
 
-	var ticker = time.NewTicker(60 * time.Second)
-	var done = make(chan bool)
+	ticker := time.NewTicker(60 * time.Second)
+	done := make(chan bool)
 	defer close(done)
 
 	exchangeServ.WriteToStorage(exchanges, pairNames, ticker, done)
 
 	var healthy bool = true
-	var doneRedisConn = make(chan bool)
+	doneRedisConn := make(chan bool)
 	defer close(doneRedisConn)
 
 	for i := range merged {
 		if healthy {
-			var err = exchangeServ.redisRepository.Write(i)
+			err := exchangeServ.redisRepository.Write(i)
 			if err != nil {
 				healthy = false
 				exchangeServ.storage.Write(i)
@@ -309,21 +309,21 @@ func (exchangeServ *exchangeService) LiveMode() {
 
 func (exchangeServ *exchangeService) RunTest() {
 	exchanges, pairNames := exchangeServ.exchangeRepository.GetExchangesTest()
-	var out = exchangeServ.Distributor(exchanges)
-	var merged = Merger(out...)
+	out := exchangeServ.Distributor(exchanges)
+	merged := Merger(out...)
 
-	var ticker = time.NewTicker(60 * time.Second)
-	var done = make(chan bool)
+	ticker := time.NewTicker(60 * time.Second)
+	done := make(chan bool)
 	defer close(done)
 
 	exchangeServ.WriteToStorage(exchanges, pairNames, ticker, done)
 
 	for i := range merged {
-		var err = exchangeServ.redisRepository.Write(i)
+		err := exchangeServ.redisRepository.Write(i)
 		if err != nil {
 			exchangeServ.storage.Write(i)
 
-			//fmt.Fprintln(os.Stderr, err.Error())
+			// fmt.Fprintln(os.Stderr, err.Error())
 		}
 	}
 

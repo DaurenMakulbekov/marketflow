@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"marketflow/internal/core/domain"
 	"net/http"
 	"os"
+
+	"marketflow/internal/core/domain"
 )
 
 func (exchangeHandl *exchangeHandler) AveragePriceHandler(w http.ResponseWriter, req *http.Request) {
@@ -19,7 +20,6 @@ func (exchangeHandl *exchangeHandler) AveragePriceHandler(w http.ResponseWriter,
 	var err error
 
 	result, err = exchangeHandl.exchangeService.GetAveragePrice(symbol)
-
 	if err != nil {
 		if errors.Is(err, domain.ErrorNotFound) {
 			PrintErrorMessage(w, req, http.StatusNotFound, "Not Found")

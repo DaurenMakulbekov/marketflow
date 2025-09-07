@@ -20,7 +20,6 @@ type exchangeService struct {
 	postgresRepository ports.PostgresRepository
 	storage            ports.Storage
 	live               bool
-	liveStarted        bool
 	test               bool
 }
 
@@ -40,7 +39,7 @@ func (exchangeServ *exchangeService) Distributor(exchanges []string) []<-chan do
 	for i := range exchanges {
 		var out <-chan string
 
-		if exchangeServ.liveStarted == false && exchangeServ.live == true {
+		if exchangeServ.live == true {
 			out = exchangeServ.exchangeRepository.GetFromExchange(exchanges[i])
 		} else {
 			out = exchangeServ.exchangeRepository.Generator()
@@ -256,10 +255,8 @@ func (exchangeServ *exchangeService) RedisConnect(doneRedisConn chan bool, healt
 	*healthy = true
 }
 
-func (exchangeServ *exchangeService) RunLive() {
-	exchanges, pairNames := exchangeServ.exchangeRepository.GetExchanges()
+func (exchangeServ *exchangeService) Run(exchanges, pairNames []string) {
 	out := exchangeServ.Distributor(exchanges)
-	exchangeServ.liveStarted = true
 	merged := Merger(out...)
 
 	ticker := time.NewTicker(60 * time.Second)
@@ -297,48 +294,53 @@ func (exchangeServ *exchangeService) LiveMode() {
 		return
 	}
 	if exchangeServ.test == true {
+		//exchangeServ.exchangeRepository.Close()
 		exchangeServ.exchangeRepository.CloseTest()
 	}
 	exchangeServ.live = true
 	exchangeServ.test = false
 
-	if exchangeServ.liveStarted == false {
-		go exchangeServ.RunLive()
-	}
+	exchanges, pairNames := exchangeServ.exchangeRepository.GetExchanges()
+
+	go exchangeServ.Run(exchanges, pairNames)
 }
 
-func (exchangeServ *exchangeService) RunTest() {
-	exchanges, pairNames := exchangeServ.exchangeRepository.GetExchangesTest()
-	out := exchangeServ.Distributor(exchanges)
-	merged := Merger(out...)
-
-	ticker := time.NewTicker(60 * time.Second)
-	done := make(chan bool)
-	defer close(done)
-
-	exchangeServ.WriteToStorage(exchanges, pairNames, ticker, done)
-
-	for i := range merged {
-		err := exchangeServ.redisRepository.Write(i)
-		if err != nil {
-			exchangeServ.storage.Write(i)
-
-			// fmt.Fprintln(os.Stderr, err.Error())
-		}
-	}
-
-	done <- true
-	ticker.Stop()
-}
+//func (exchangeServ *exchangeService) RunTest() {
+//	out := exchangeServ.Distributor(exchanges)
+//	merged := Merger(out...)
+//
+//	ticker := time.NewTicker(60 * time.Second)
+//	done := make(chan bool)
+//	defer close(done)
+//
+//	exchangeServ.WriteToStorage(exchanges, pairNames, ticker, done)
+//
+//	for i := range merged {
+//		err := exchangeServ.redisRepository.Write(i)
+//		if err != nil {
+//			exchangeServ.storage.Write(i)
+//
+//			// fmt.Fprintln(os.Stderr, err.Error())
+//		}
+//	}
+//
+//	done <- true
+//	ticker.Stop()
+//}
 
 func (exchangeServ *exchangeService) TestMode() {
 	if exchangeServ.test == true {
 		return
 	}
+	if exchangeServ.live == true {
+		exchangeServ.exchangeRepository.Close()
+	}
 	exchangeServ.test = true
 	exchangeServ.live = false
 
-	go exchangeServ.RunTest()
+	exchanges, pairNames := exchangeServ.exchangeRepository.GetExchangesTest()
+
+	go exchangeServ.Run(exchanges, pairNames)
 }
 
 func (exchangeServ *exchangeService) Close() {

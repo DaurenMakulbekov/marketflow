@@ -59,7 +59,7 @@ func (exchangeRepo *exchangeRepository) Close() {
 	for i := 0; i < 3; i++ {
 		exchangeRepo.done <- true
 	}
-	close(exchangeRepo.done)
+	//close(exchangeRepo.done)
 }
 
 func (exchangeRepo *exchangeRepository) CloseTest() {

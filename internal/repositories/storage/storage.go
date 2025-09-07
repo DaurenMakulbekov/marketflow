@@ -1,11 +1,14 @@
 package storage
 
 import (
+	"sync"
+
 	"marketflow/internal/core/domain"
 )
 
 type storage struct {
 	table map[string]map[string]domain.Exchange
+	mu    sync.Mutex
 }
 
 func NewStorage() *storage {
@@ -24,14 +27,21 @@ func NewStorage() *storage {
 
 	return &storage{
 		table: table,
+		mu:    sync.Mutex{},
 	}
 }
 
 func (st *storage) Write(exchange domain.Exchange) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
 	st.table[exchange.Exchange+":"+exchange.Symbol][exchange.ID] = exchange
 }
 
 func (st *storage) GetAll() []domain.Exchange {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
 	var result []domain.Exchange
 
 	for key := range st.table {
@@ -44,6 +54,9 @@ func (st *storage) GetAll() []domain.Exchange {
 }
 
 func (st *storage) GetByPeriod(exchanges []string, symbol string, period int64) []domain.Exchange {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
 	var result []domain.Exchange
 
 	for key := range st.table {
@@ -60,6 +73,9 @@ func (st *storage) GetByPeriod(exchanges []string, symbol string, period int64) 
 }
 
 func (st *storage) GetByExchangePeriod(exchange string, symbol string, period int64) []domain.Exchange {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
 	var result []domain.Exchange
 
 	for key := range st.table {
@@ -74,6 +90,9 @@ func (st *storage) GetByExchangePeriod(exchange string, symbol string, period in
 }
 
 func (st *storage) GetLatest(exchanges []string, symbol string) []domain.Exchange {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
 	var result []domain.Exchange
 
 	for key := range st.table {
@@ -90,6 +109,9 @@ func (st *storage) GetLatest(exchanges []string, symbol string) []domain.Exchang
 }
 
 func (st *storage) GetLatestByExchange(exchange string, symbol string) []domain.Exchange {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
 	var result []domain.Exchange
 
 	for key := range st.table {
@@ -104,6 +126,9 @@ func (st *storage) GetLatestByExchange(exchange string, symbol string) []domain.
 }
 
 func (st *storage) DeleteAll(exchanges []domain.Exchange) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
 	for i := range exchanges {
 		delete(st.table[exchanges[i].Exchange+":"+exchanges[i].Symbol], exchanges[i].ID)
 	}

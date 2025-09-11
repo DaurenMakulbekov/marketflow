@@ -76,7 +76,7 @@ type PostgresRepository interface {
 
 type Storage interface {
 	Write(exchange domain.Exchange)
-	GetAll() []domain.Exchange
+	GetAll(exchanges, pairNames []string) []domain.Exchange
 	DeleteAll(exchanges []domain.Exchange)
 	GetByPeriod(exchanges []string, symbol string, period int64) []domain.Exchange
 	GetByExchangePeriod(exchange string, symbol string, period int64) []domain.Exchange

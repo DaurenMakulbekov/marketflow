@@ -71,7 +71,7 @@ func (exchangeRepo *exchangeRepository) Close() {
 	for i := 0; i < 3; i++ {
 		exchangeRepo.done <- true
 	}
-	//close(exchangeRepo.done)
+	// close(exchangeRepo.done)
 }
 
 func (exchangeRepo *exchangeRepository) CloseTest() {
@@ -173,8 +173,8 @@ func (exchangeRepo *exchangeRepository) GetFromExchange(exchange string) <-chan 
 }
 
 func (exchangeRepo *exchangeRepository) Generator(exchange string) {
-	var config = exchangeRepo.table[exchange]
-	var pairNames = exchangeRepo.pairNamesTest
+	config := exchangeRepo.table[exchange]
+	pairNames := exchangeRepo.pairNamesTest
 
 	go func() {
 		listener, err := net.Listen("tcp", config.Host+":"+config.Port)

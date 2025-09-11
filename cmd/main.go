@@ -55,6 +55,7 @@ func main() {
 	exchangeRepos := exchangerepository.NewExchangeRepository(config.Exchanges)
 	exchangeService := exchangeservice.NewExchangeService(exchangeRepos, redisRepository, postgresRepository, storageRepository)
 	exchangeHandler := exchangehandler.NewExchangeHandler(exchangeService)
+	exchangeService.LiveMode()
 
 	mux := http.NewServeMux()
 

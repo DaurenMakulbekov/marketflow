@@ -133,7 +133,7 @@ func (exchangeServ *exchangeService) Aggregate(exchanges, pairNames []string, m 
 		result = append(result, exchangesData...)
 	}
 
-	storageData := exchangeServ.storage.GetAll()
+	storageData := exchangeServ.storage.GetAll(exchanges, pairNames)
 	if len(storageData) > 0 {
 		result = append(result, storageData...)
 	}
@@ -283,8 +283,6 @@ func (exchangeServ *exchangeService) Run(exchanges, pairNames []string) {
 		}
 	}
 
-	doneRedisConn <- true
-	done <- true
 	ticker.Stop()
 }
 
@@ -303,29 +301,6 @@ func (exchangeServ *exchangeService) LiveMode() {
 
 	go exchangeServ.Run(exchanges, pairNames)
 }
-
-//func (exchangeServ *exchangeService) RunTest() {
-//	out := exchangeServ.Distributor(exchanges)
-//	merged := Merger(out...)
-//
-//	ticker := time.NewTicker(60 * time.Second)
-//	done := make(chan bool)
-//	defer close(done)
-//
-//	exchangeServ.WriteToStorage(exchanges, pairNames, ticker, done)
-//
-//	for i := range merged {
-//		err := exchangeServ.redisRepository.Write(i)
-//		if err != nil {
-//			exchangeServ.storage.Write(i)
-//
-//			// fmt.Fprintln(os.Stderr, err.Error())
-//		}
-//	}
-//
-//	done <- true
-//	ticker.Stop()
-//}
 
 func (exchangeServ *exchangeService) TestMode() {
 	if exchangeServ.test == true {

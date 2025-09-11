@@ -52,15 +52,17 @@ func (st *storage) Write(exchange domain.Exchange) {
 	st.table[exchange.Exchange+":"+exchange.Symbol][exchange.ID] = exchange
 }
 
-func (st *storage) GetAll() []domain.Exchange {
+func (st *storage) GetAll(exchanges, pairNames []string) []domain.Exchange {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 
 	var result []domain.Exchange
 
-	for key := range st.table {
-		for _, v := range st.table[key] {
-			result = append(result, v)
+	for i := range exchanges {
+		for j := range pairNames {
+			for _, v := range st.table[exchanges[i]+":"+pairNames[j]] {
+				result = append(result, v)
+			}
 		}
 	}
 

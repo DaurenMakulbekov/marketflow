@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand/v2"
 	"net"
+	"os"
 	"slices"
 	"sync"
 	"time"
@@ -33,15 +34,26 @@ func NewExchangeRepository(configs []*config.Exchange) *exchangeRepository {
 	doneTest := make(chan bool)
 	var exchanges []string
 	pairNames := []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
-	exchangesTest := []string{"exchange1_test", "exchange2_test", "exchange3_test"}
+	var exchangesTest []string
 	pairNamesTest := []string{"BTCUSDT_test", "DOGEUSDT_test", "TONUSDT_test", "SOLUSDT_test", "ETHUSDT_test"}
 
 	for i := range configs {
-		exchanges = append(exchanges, configs[i].Name)
+		if i < 3 {
+			exchanges = append(exchanges, configs[i].Name)
+		} else {
+			exchangesTest = append(exchangesTest, configs[i].Name)
+		}
 	}
 
+	var index int = 0
 	for i := range exchanges {
-		table[exchanges[i]] = configs[i]
+		table[exchanges[i]] = configs[index]
+		index++
+	}
+
+	for i := range exchangesTest {
+		table[exchangesTest[i]] = configs[index]
+		index++
 	}
 
 	return &exchangeRepository{
@@ -160,12 +172,26 @@ func (exchangeRepo *exchangeRepository) GetFromExchange(exchange string) <-chan 
 	return out
 }
 
-func (exchangeRepo *exchangeRepository) Generator() <-chan string {
-	out := make(chan string)
-	pairNames := exchangeRepo.pairNamesTest
+func (exchangeRepo *exchangeRepository) Generator(exchange string) {
+	var config = exchangeRepo.table[exchange]
+	var pairNames = exchangeRepo.pairNamesTest
 
 	go func() {
-		defer close(out)
+		listener, err := net.Listen("tcp", config.Host+":"+config.Port)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			return
+		}
+		defer listener.Close()
+
+		conn, err := listener.Accept()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			return
+		}
+		defer conn.Close()
+
+		log.Printf("Connected to %s\n", exchange)
 
 		for {
 			select {
@@ -191,14 +217,12 @@ func (exchangeRepo *exchangeRepository) Generator() <-chan string {
 					}
 
 					result, _ := json.Marshal(exchange)
-					out <- string(result)
+					fmt.Fprintln(conn, string(result))
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()
-
-	return out
 }
 
 func (exchangeRepo *exchangeRepository) GetExchanges() ([]string, []string) {

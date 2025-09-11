@@ -39,11 +39,10 @@ func (exchangeServ *exchangeService) Distributor(exchanges []string) []<-chan do
 	for i := range exchanges {
 		var out <-chan string
 
-		if exchangeServ.live == true {
-			out = exchangeServ.exchangeRepository.GetFromExchange(exchanges[i])
-		} else {
-			out = exchangeServ.exchangeRepository.Generator()
+		if exchangeServ.test == true {
+			exchangeServ.exchangeRepository.Generator(exchanges[i])
 		}
+		out = exchangeServ.exchangeRepository.GetFromExchange(exchanges[i])
 
 		for j := 0; j < 5; j++ {
 			outSlice[index] = Worker(out, exchanges[i])
@@ -294,7 +293,7 @@ func (exchangeServ *exchangeService) LiveMode() {
 		return
 	}
 	if exchangeServ.test == true {
-		//exchangeServ.exchangeRepository.Close()
+		exchangeServ.exchangeRepository.Close()
 		exchangeServ.exchangeRepository.CloseTest()
 	}
 	exchangeServ.live = true

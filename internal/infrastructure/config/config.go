@@ -71,7 +71,25 @@ func NewExchanges() []*Exchange {
 		Port: os.Getenv("EXCHANGE3_PORT"),
 	}
 
-	exchanges = append(exchanges, exchange1, exchange2, exchange3)
+	exchange1_test := &Exchange{
+		Name: os.Getenv("EXCHANGE1_test_NAME"),
+		Host: os.Getenv("EXCHANGE1_test_HOST"),
+		Port: os.Getenv("EXCHANGE1_test_PORT"),
+	}
+
+	exchange2_test := &Exchange{
+		Name: os.Getenv("EXCHANGE2_test_NAME"),
+		Host: os.Getenv("EXCHANGE2_test_HOST"),
+		Port: os.Getenv("EXCHANGE2_test_PORT"),
+	}
+
+	exchange3_test := &Exchange{
+		Name: os.Getenv("EXCHANGE3_test_NAME"),
+		Host: os.Getenv("EXCHANGE3_test_HOST"),
+		Port: os.Getenv("EXCHANGE3_test_PORT"),
+	}
+
+	exchanges = append(exchanges, exchange1, exchange2, exchange3, exchange1_test, exchange2_test, exchange3_test)
 
 	return exchanges
 }

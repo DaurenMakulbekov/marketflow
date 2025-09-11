@@ -51,7 +51,7 @@ func main() {
 
 	redisRepository := redisrepository.NewRedisRepository(config.Redis, ctx)
 	postgresRepository := postgresrepository.NewPostgresRepository(config.DB)
-	storageRepository := storage.NewStorage()
+	storageRepository := storage.NewStorage(config.Exchanges)
 	exchangeRepos := exchangerepository.NewExchangeRepository(config.Exchanges)
 	exchangeService := exchangeservice.NewExchangeService(exchangeRepos, redisRepository, postgresRepository, storageRepository)
 	exchangeHandler := exchangehandler.NewExchangeHandler(exchangeService)

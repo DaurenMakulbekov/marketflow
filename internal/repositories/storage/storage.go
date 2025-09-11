@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"marketflow/internal/core/domain"
+	"marketflow/internal/infrastructure/config"
 )
 
 type storage struct {
@@ -11,16 +12,29 @@ type storage struct {
 	mu    sync.Mutex
 }
 
-func NewStorage() *storage {
+func NewStorage(configs []*config.Exchange) *storage {
 	table := make(map[string]map[string]domain.Exchange)
-	exchanges := []string{"exchange1", "exchange2", "exchange3"}
+	var exchanges []string
 	symbols := []string{"BTCUSDT", "DOGEUSDT", "TONUSDT", "SOLUSDT", "ETHUSDT"}
-	exchangesTest := []string{"exchange1_test", "exchange2_test", "exchange3_test"}
+	var exchangesTest []string
 	symbolsTest := []string{"BTCUSDT_test", "DOGEUSDT_test", "TONUSDT_test", "SOLUSDT_test", "ETHUSDT_test"}
+
+	for i := range configs {
+		if i < 3 {
+			exchanges = append(exchanges, configs[i].Name)
+		} else {
+			exchangesTest = append(exchangesTest, configs[i].Name)
+		}
+	}
 
 	for i := range exchanges {
 		for j := range symbols {
 			table[exchanges[i]+":"+symbols[j]] = make(map[string]domain.Exchange)
+		}
+	}
+
+	for i := range exchangesTest {
+		for j := range symbolsTest {
 			table[exchangesTest[i]+":"+symbolsTest[j]] = make(map[string]domain.Exchange)
 		}
 	}
